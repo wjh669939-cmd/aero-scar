@@ -1,0 +1,8 @@
+v0.1.0-pre-discovery
+snapshot_date: 2026-08-27
+evaluator: v1.0.2
+task_contract: v2.0
+decision_policy: v1.1
+axis_lock: v1.0+DEC-002
+seeds: v1.1
+test_lock: LOCKED
