@@ -388,6 +388,64 @@
         "crosswind_mae"
       ],
       "falsification": "插补/Crosswind 切片无配对改善"
+    },
+    {
+      "action_id": "M4-task-gated-adapters",
+      "axis": "model",
+      "tier": 1,
+      "status": "conditional",
+      "type": "code_level",
+      "evidence_anchor": "三 seed 复现预训练对 forecast 负迁移（SNR 3.48）、对 classification 正迁移：共享表征存在任务间干扰",
+      "hypothesis": "在共享编码器中插入任务门控瓶颈适配器（参数增量 <5%），预训练表征冻结共享、各下游任务独立调制，可消除表征干扰使 pretrained 在 forecast 上追平或反超 scratch",
+      "target_slices": [
+        "forecast_pretrained_vs_scratch_gap",
+        "classification_macro_f1_guardrail"
+      ],
+      "falsification": "forecast_pretrained 相对 scratch 的 RMSE 差距未缩小 >=50%，或 classification 增益丢失，或参数预算超 5%",
+      "param_space": {
+        "adapter_dim": {
+          "kind": "choice",
+          "choices": [
+            8,
+            16,
+            32
+          ]
+        }
+      },
+      "extra_validators": [
+        "param_budget_counter",
+        "io_shape_check",
+        "forward_backward_smoke"
+      ]
+    },
+    {
+      "action_id": "M5-bounded-polar-head",
+      "axis": "model",
+      "tier": 1,
+      "status": "conditional",
+      "type": "code_level",
+      "evidence_anchor": "ZSSS T+1 wind_x 出现 >1 的回归头溢出（LayerNorm+Linear 直出无界）；低风速时方向信息被幅值淹没",
+      "hypothesis": "将回归头改为 风速(有界激活) × 方向(sin/cos 归一) 的极坐标分解输出：溢出在结构上不可能发生，低风速下方向具有独立表示通路，改善 T+1 与低风速切片",
+      "target_slices": [
+        "forecast_T+1",
+        "low_wind_slice",
+        "out_of_range_anomaly"
+      ],
+      "falsification": "T+1 RMSE 无配对改善且 out_of_range 计数未归零，或任一时距整体恶化超容差",
+      "param_space": {
+        "speed_activation": {
+          "kind": "choice",
+          "choices": [
+            "sigmoid",
+            "softplus_clamp"
+          ]
+        }
+      },
+      "extra_validators": [
+        "param_budget_counter",
+        "io_shape_check",
+        "forward_backward_smoke"
+      ]
     }
   ],
   "negative_list": [
@@ -407,6 +465,10 @@
     {
       "date": "2026-08-27",
       "change": "DEC-002 通过：O4-O6 由 conditional 转 active（M1-M3 维持 conditional，DEC-001 本期不激活，9/2 复议）"
+    },
+    {
+      "date": "2026-08-27",
+      "change": "预备 M 轴模板 M4（任务门控适配器，打负迁移的结构侧对偶方案）与 M5（有界极坐标回归头，治溢出与低风速方向）；状态 conditional，随 DEC-001 于 9/2 复议激活。M 轴保持 inactive，此登记不影响当前采样池"
     }
   ]
 }

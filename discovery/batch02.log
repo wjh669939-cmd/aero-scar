@@ -1,3 +1,9 @@
 smoke gate 自检通过（基线文件）
 
 ===== TRIAL 2 axis=representation 2026-08-27T10:22:53Z =====
+TRIAL_OUTCOME: {"trial_id": "llm-rep-002", "event": null, "status": "completed", "paired_delta_vs_parent": {"forecast_scratch.RMSE_macro_norm": 0.0, "forecast_scratch.MAE_macro_norm": 0.0, "forecast_pretrained.RMSE_macro_norm": 9e-06, "forecast_pretrained.MAE_macro_norm": 0.0, "classification_scratch.classification_macro_f1": -2e-06, "classification_scratch.classification_csi_macro": 5e-06, "classification_scratch.hazard_class_f1": 4e-06, "classification_pretrained.classification_macro_f1": -0.0, "classification_pretrained.classification_csi_macro": 0.0, "classification_pretrained.hazard_class_f1": 1e-06}, "screen_pass": false}
+
+===== TRIAL 3 axis=objective_tier1 2026-08-27T12:40:07Z =====
+TRIAL_OUTCOME: {"trial_id": "llm-obj-003", "event": null, "status": "failed", "paired_delta_vs_parent": {}, "screen_pass": null}
+
+BATCH_DONE 2026-08-27T13:32:42Z
