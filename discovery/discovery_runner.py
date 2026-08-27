@@ -37,6 +37,7 @@ from contract_tools.context_assembler import (
     assert_no_hidden_tokens,
 )
 from contract_tools.evidence_builder import build_failure_slices
+from contract_tools.free_proposal import FORCED_FREE_DIRECTIVE, forced_free_status
 from contract_tools.evaluator_client import run_evaluator
 from contract_tools.pipeline_executor import PipelineConfig, run_pipeline
 from contract_tools.predictions_adapter import adapt_stage_npz
@@ -362,12 +363,19 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
         failure_slices = build_failure_slices(DISCOVERY / "parent_refs")
     except Exception:  # noqa: BLE001
         failure_slices = FAILURE_SLICES_SUMMARY
+    registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    active_ids = [a["action_id"] for a in registry["actions"]
+                  if a.get("status") == "active" and a["axis"] == axis]
+    forced, forced_reason = forced_free_status(lineage, axis, active_ids)
     prompt = assemble_proposal_prompt(
         axis=axis,
         registry_path=REGISTRY,
         lineage_records=lineage,
         failure_slices_summary=failure_slices,
     )
+    if forced:
+        prompt += FORCED_FREE_DIRECTIVE
+        print(f"[forced-free] {axis}: {forced_reason}", flush=True)
     assert_no_hidden_tokens(prompt)
 
     trial = None
@@ -375,12 +383,19 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
     for attempt in range(3):
         raw = call_llm(api_key, [{"role": "user", "content": prompt}], temperature=0.7)
         parsed = parse_llm_proposal(raw, trial_seq=trial_seq, parent_trial=parent_trial, screening_seed=seed)
+        if parsed.ok and forced and not parsed.trial_record["is_free_proposal"]:
+            proposal_errors.append(
+                f"强制自由轮拒绝模板提案: {parsed.trial_record['action_id']}（{forced_reason}）"
+            )
+            continue
         if parsed.ok and parsed.trial_record["axis"] == axis:
             trial = parsed.trial_record
+            trial["forced_free_round"] = forced
             break
         proposal_errors.extend(parsed.errors or [f"axis mismatch: {parsed.trial_record.get('axis')}"])
     if trial is None:
         rec = {"event": "proposal_rejected", "axis": axis, "trial_seq": trial_seq,
+               "forced_free_round": forced,
                "errors": proposal_errors[:6], "at": now_utc()}
         append_lineage(rec)
         return rec
@@ -495,6 +510,9 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
         append_lineage({
             "event": "trial_done", "trial_id": trial["trial_id"], "axis": axis,
             "action_id": trial["action_id"], "parent_trial": parent_trial,
+            "arm_category": "llm_free" if trial.get("is_free_proposal") else "llm_template",
+            "non_expressibility": trial.get("non_expressibility", ""),
+            "forced_free_round": trial.get("forced_free_round", False),
             "hypothesis": trial["hypothesis"],
             "falsification": trial["falsification"], "status": result["status"],
             "status_reason": result["status_reason"],

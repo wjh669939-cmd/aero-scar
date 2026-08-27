@@ -84,9 +84,16 @@ def parse_llm_proposal(
         "falsification": str(payload["falsification"]),
         "editable_paths": list(payload["editable_paths"]),
         "patch_plan": str(payload.get("patch_plan", "")),
+        "non_expressibility": str(payload.get("non_expressibility", "")),
         "budget": {"gpu_hours_cap": gpu_hours_cap, "seeds": [screening_seed]},
         "created_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
+    if record["is_free_proposal"]:
+        from contract_tools.free_proposal import validate_free_proposal
+
+        free_errors = validate_free_proposal(record)
+        if free_errors:
+            return ParsedProposal(ok=False, errors=free_errors)
     if axis == "model":
         extra = payload.get("model_axis_extra")
         if not isinstance(extra, dict):
