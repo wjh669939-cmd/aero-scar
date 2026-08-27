@@ -1,0 +1,30 @@
+{
+  "trial_id": "llm-rep-002",
+  "arm": "llm",
+  "axis": "representation",
+  "tier": 1,
+  "parent_trial": "parent-seed42-formal",
+  "action_id": "R2-thermo-precursors",
+  "is_free_proposal": false,
+  "hypothesis": "Adding dewpoint depression, 3-hour pressure trend, and gust-minus-mean wind as explicit input features will give the model direct physical precursors for fog/haze formation and frontal/turbulence transitions, improving rare-class hazard detection and long-horizon forecast stability.",
+  "evidence_anchor": "Failure slice (d): hazard-class F1 fluctuates 0.53-0.79 across seeds and val support is extremely sparse; fog/haze is a known minority class where temperature-moisture coupling (T-Td) and pressure tendency are textbook precursors, yet the current representation forces the model to infer these indirectly from raw channels.",
+  "target_slices": [
+    "fog_haze_f1",
+    "hazard_csi",
+    "forecast_T+4",
+    "forecast_T+8"
+  ],
+  "expected_effect": "Increase fog_haze_f1 by at least +0.05 absolute over scratch baseline; reduce T+8 RMSE by at least 0.002 (relative improvement ~4%) by providing stabilizing physical context.",
+  "falsification": "On the visible validation endpoint grid, if the mean fog_haze_f1 across seeds does not improve by >=0.05 over the scratch baseline, or if T+8 RMSE degrades by more than 0.001, the hypothesis is refuted.",
+  "editable_paths": [
+    "aerowf_downstream_v2/src/trial_features.py"
+  ],
+  "patch_plan": "In aerowf_downstream_v2/src/trial_features.py, modify build_forecast_inputs to compute and append dewpoint_depression (T - Td), pressure_trend_3h (difference between latest and 3h-prior pressure), and gust_minus_mean (gust - sustained wind) from available METAR fields. Keep existing channels unchanged; add these as extra numeric features. Ensure the feature ordering is consistent and update any internal normalization to handle the new channels. No changes to target generation or model architecture.",
+  "budget": {
+    "gpu_hours_cap": 1.0,
+    "seeds": [
+      42
+    ]
+  },
+  "created_at_utc": "2026-08-27T10:22:58Z"
+}

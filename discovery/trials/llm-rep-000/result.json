@@ -1,0 +1,19 @@
+{
+  "trial_id": "llm-rep-000",
+  "attempt_id": 1,
+  "status": "failed",
+  "status_reason": "非零退出码: 1; 缺少 pipeline_summary.json; forecast_scratch: 缺少 metrics.json; forecast_pretrained: 缺少 metrics.json; classification_scratch: 缺少 metrics.json; classification_pretrained: 缺少 metrics.json",
+  "metrics_by_endpoint": {},
+  "paired_delta_vs_parent": {},
+  "artifact_digests": {
+    "edit_sha256": "842a525263171dd4c33d9c6ee7837ffacf521a484008867c15c7a82fe237f4c1"
+  },
+  "resource_usage": {
+    "gpu_hours": 0.884,
+    "gpu_model": "RTX3090"
+  },
+  "hypothesis_verdict": "not_evaluated",
+  "execution_deviations": [],
+  "evaluation_manifest_digest": "",
+  "created_at_utc": "2026-08-27T09:16:32Z"
+}

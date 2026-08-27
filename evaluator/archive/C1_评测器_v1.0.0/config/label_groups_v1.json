@@ -1,0 +1,5 @@
+{
+  "upstream_to_task_class": [-100, -100, 0, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2],
+  "class_names": ["GOOD", "PRECIP", "CLASS_HAZARD"],
+  "event_hazard_codes": [3, 4, 5, 14, 15, 16, 17, 18, 19, 20]
+}

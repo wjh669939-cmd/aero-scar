@@ -1,0 +1,7 @@
+{
+  "trial_id": "C1_freeze_validation",
+  "arm": "C",
+  "seed": 20260823,
+  "task": "forecast",
+  "checkpoint_digest": "C1_freeze_validation"
+}

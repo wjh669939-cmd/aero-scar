@@ -1,0 +1,10 @@
+# C2 认证封存 SHA-256
+# 用途：向组内证明 C 封存所用数据版本、V2 事件规则版本和私有切片版本已固定
+# 本清单不包含认证样本、sample_id、锁状态或访问日志。
+
+220228aa7816c61e6e8377eb66745766287007a67682f7f3d86bd808510c4681  B移交的认证数据包_AeroWF_v1_EVALUATION.7z
+7e7932141649b5d368b81d8d5629b0edc09ed6aba993633dff2b6faf5059f3a1  C私有事件切片_temporal_ZBAA.npz（V2）
+3ce34af97d2a3f5796c22c0d4f8bd53b788d9b7ae319fd1e212610094ad0bfc7  C私有事件切片_temporal_ZSPD.npz（V2）
+5412de30590d0582b7fc6312d25de73404297aa7a0d079d2485ce5d7d40d90d7  C私有事件切片_temporal_ZSSS.npz（V2）
+f1248548342d42c840a045d81b06c7216fbecfb782614c0ee8fcd7ec59fe747e  C私有事件切片_spatial_ZBAD.npz（V2）
+1130670155d0c7649ec434ce6c11798f0efc844594233287797f0d45d84ee0ea  固定mask清单_MANIFEST.json（仅在保留插补评测时使用）

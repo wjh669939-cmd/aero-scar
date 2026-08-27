@@ -1,0 +1,28 @@
+{
+  "trial_id": "llm-obj-001",
+  "arm": "llm",
+  "axis": "objective_tier1",
+  "tier": 1,
+  "parent_trial": "parent-seed42-formal",
+  "action_id": "O1-horizon-weighted-mse",
+  "is_free_proposal": false,
+  "hypothesis": "Horizon-specific weighting of the MSE forecast loss reallocates model capacity toward the weakest long-horizon (T+8) predictions, which currently degrade monotonically with lead time, while preserving short-horizon accuracy.",
+  "evidence_anchor": "Validation shows RMSE worsens monotonically with horizon (T+1 0.0444, T+4 0.0489, T+8 0.0511 on seed43 scratch), indicating the shared MSE under-weights the most difficult long-horizon targets.",
+  "target_slices": [
+    "forecast_by_weighted_horizon",
+    "T+8_RMSE"
+  ],
+  "expected_effect": "T+8 RMSE decreases by at least 5% relative to baseline, while T+1 RMSE increases by no more than 3%.",
+  "falsification": "If, after training, the weighted average RMSE over all horizons (with weights [1,1,2]) does not improve over the baseline unweighted RMSE by at least 0.5%, or if T+1 RMSE degrades by more than 5% relative to baseline, the trial is refuted.",
+  "editable_paths": [
+    "aerowf_downstream_v2/src/trial_objective.py"
+  ],
+  "patch_plan": "Modify forecast_loss to accept an optional horizon index (inferred from prediction shape or a new parameter) and apply per-horizon weights. For the chosen weights [1,1,2], multiply the MSE loss for the last horizon (T+8) by 2 while keeping T+1 and T+4 weights at 1. Ensure the loss remains differentiable and finite for masked/virtual runways by applying the same masking logic before weighting.",
+  "budget": {
+    "gpu_hours_cap": 1.0,
+    "seeds": [
+      42
+    ]
+  },
+  "created_at_utc": "2026-08-27T09:16:36Z"
+}

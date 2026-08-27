@@ -1,0 +1,25 @@
+{
+ "masks": {
+  "validation": {
+   "ZBAA": {
+    "feature": "811a3bcb38a1b9cdfd98c32facb5c1de4cff9af66db869a2e3e23a96291b7126",
+    "random_25": "4da228d9bb7448921d3439b979ac90929f106f4bbba13824419562c0d9126376",
+    "random_50": "f3a5ed516982e16cd4a13c320073d4b6bf35342aae8db0fe98479da6f518e796",
+    "random_75": "7620a4088bcdb91414fd2c6a756df59b8dfbe96e1ec20be865f0128abc28b120"
+   },
+   "ZSPD": {
+    "feature": "e0569dc8e5284b8bfb77e1c47cc988144b4ed19ec3d95fc4d720223a4b903ffa",
+    "random_25": "07dcb9c4fb8f3a44fd40ef831abd5995f039b7e8e9efa6f94045ec53c4a589e8",
+    "random_50": "68e0afa959555ed90c0ee01f62034d31113b116f42728ffc4ff426572117a7f1",
+    "random_75": "cf5f2dc821f9a5bcbeae29d7c4cd3cd261cc620717a54d21054413c4e46af6eb"
+   },
+   "ZSSS": {
+    "feature": "c19cd0f515c3116477acb6c01f06d36a97f278ebad7e38d8511caba16f63deb9",
+    "random_25": "615c2f29c254212844708f31ac8eb78c8713c8769f91d02b2bf75433596eb97a",
+    "random_50": "080c5eb96b3bcdc10560cc6f8587b8a8809dc4b15f66799e864dcafcf35f4823",
+    "random_75": "a9b51a6a906ec6913c45f68d9e24c3e2e228f25743d7c18e01a55443e70011be"
+   }
+  }
+ },
+ "schema_version": "1.0"
+}

@@ -1,0 +1,340 @@
+{
+  "schema_version": "1.0",
+  "contract_name": "AeroWF Downstream Task Contract V1",
+  "data_release": "AeroWF_v1",
+  "status": "normative_v1",
+  "source_basis": {
+    "aerowf_dataset": "https://huggingface.co/datasets/1yunyi/AeroWF",
+    "aerowf_code": "https://github.com/apprentice00/AeroWF",
+    "notes": [
+      "Upstream AeroWF defines a 21-ID global weather vocabulary.",
+      "Upstream weather_label and weather_code_id represent the same weather-class target.",
+      "The 3-class collapse in this contract is a project task-layer definition."
+    ]
+  },
+  "time_semantics": {
+    "sample_timestamp_semantics": "window_start",
+    "internal_observation_cadence_minutes": 1,
+    "input_window_size": 96,
+    "input_last_observation_offset_minutes": 95,
+    "sample_start_cadence_minutes": 15,
+    "forecast_origin": "window_start + 95 minutes"
+  },
+  "forecast": {
+    "horizons_minutes_after_input_end": [
+      1,
+      4,
+      8
+    ],
+    "horizon_names": [
+      "T+1",
+      "T+4",
+      "T+8"
+    ],
+    "target_timestamps_from_window_start_minutes": {
+      "T+1": 96,
+      "T+4": 99,
+      "T+8": 103
+    },
+    "canonical_partner_window": {
+      "start_offset_minutes_from_anchor": 15,
+      "internal_indices_zero_based": {
+        "T+1": 81,
+        "T+4": 84,
+        "T+8": 88
+      },
+      "formula": "internal_index = (95 + horizon_minutes) - 15 = 80 + horizon_minutes"
+    },
+    "target_features": [
+      {
+        "target_index": 0,
+        "runway_channel": 0,
+        "name": "cloud_base"
+      },
+      {
+        "target_index": 1,
+        "runway_channel": 1,
+        "name": "wind_x"
+      },
+      {
+        "target_index": 2,
+        "runway_channel": 2,
+        "name": "wind_y"
+      },
+      {
+        "target_index": 3,
+        "runway_channel": 3,
+        "name": "pressure"
+      },
+      {
+        "target_index": 4,
+        "runway_channel": 4,
+        "name": "temperature"
+      },
+      {
+        "target_index": 5,
+        "runway_channel": 5,
+        "name": "humidity"
+      },
+      {
+        "target_index": 6,
+        "runway_channel": 6,
+        "name": "dewpoint"
+      }
+    ],
+    "non_targets": [
+      "hour_sin",
+      "hour_cos",
+      "month_sin",
+      "month_cos"
+    ],
+    "target_builder_rules": {
+      "lookup": "timestamp_based",
+      "same_airport_required": true,
+      "same_released_task_partition_required": true,
+      "cross_partition_target_generation": false,
+      "padded_runways_evaluated": false,
+      "missing_target_policy": "exclude_anchor_for_that_horizon_and_report_counts",
+      "required_counts": [
+        "n_anchor",
+        "n_target_available",
+        "n_target_dropped"
+      ]
+    },
+    "allowed_inputs": {
+      "runway_channels": [
+        "cloud_base",
+        "wind_x",
+        "wind_y",
+        "pressure",
+        "temperature",
+        "humidity",
+        "dewpoint",
+        "hour_sin",
+        "hour_cos",
+        "month_sin",
+        "month_cos"
+      ],
+      "runway_mask": true,
+      "exo_continuous": [
+        "visibility",
+        "cloud_height",
+        "gust_speed"
+      ],
+      "exo_categorical": [
+        "weather_code_id",
+        "sky_condition",
+        "has_gust",
+        "is_cavok"
+      ],
+      "graph": [
+        "graph_edge_index",
+        "graph_edge_type"
+      ],
+      "anchor_timestamp_or_cyclic_time": true
+    },
+    "forbidden_inputs": [
+      "future runway windows",
+      "future exogenous variables",
+      "forecast targets or direct target derivatives",
+      "evaluation labels/results",
+      "split/status/sample_id/source_index as predictive features",
+      "weather_label as an additional predictive feature"
+    ]
+  },
+  "classification": {
+    "task_classes": {
+      "0": "GOOD",
+      "1": "PRECIP",
+      "2": "HAZARD"
+    },
+    "ignore_index": -100,
+    "upstream_vocab": {
+      "0": "<PAD>",
+      "1": "<UNK>",
+      "2": "<GOOD_WX>",
+      "3": "+TSRA",
+      "4": "TSRA",
+      "5": "TS",
+      "6": "+SHRA",
+      "7": "+RA",
+      "8": "RASN",
+      "9": "RA",
+      "10": "PL",
+      "11": "DZ",
+      "12": "SN",
+      "13": "SG",
+      "14": "DS",
+      "15": "FG",
+      "16": "BR",
+      "17": "HZ",
+      "18": "DU",
+      "19": "SA",
+      "20": "SQ"
+    },
+    "mapping_by_upstream_id": {
+      "0": null,
+      "1": null,
+      "2": 0,
+      "3": 2,
+      "4": 2,
+      "5": 2,
+      "6": 1,
+      "7": 1,
+      "8": 1,
+      "9": 1,
+      "10": 1,
+      "11": 1,
+      "12": 1,
+      "13": 1,
+      "14": 2,
+      "15": 2,
+      "16": 2,
+      "17": 2,
+      "18": 2,
+      "19": 2,
+      "20": 2
+    },
+    "mapping_by_token": {
+      "<PAD>": "IGNORE",
+      "<UNK>": "IGNORE",
+      "<GOOD_WX>": "GOOD",
+      "+TSRA": "HAZARD",
+      "TSRA": "HAZARD",
+      "TS": "HAZARD",
+      "+SHRA": "PRECIP",
+      "+RA": "PRECIP",
+      "RASN": "PRECIP",
+      "RA": "PRECIP",
+      "PL": "PRECIP",
+      "DZ": "PRECIP",
+      "SN": "PRECIP",
+      "SG": "PRECIP",
+      "DS": "HAZARD",
+      "FG": "HAZARD",
+      "BR": "HAZARD",
+      "HZ": "HAZARD",
+      "DU": "HAZARD",
+      "SA": "HAZARD",
+      "SQ": "HAZARD"
+    },
+    "allowed_inputs": {
+      "runway_channels": [
+        "cloud_base",
+        "wind_x",
+        "wind_y",
+        "pressure",
+        "temperature",
+        "humidity",
+        "dewpoint",
+        "hour_sin",
+        "hour_cos",
+        "month_sin",
+        "month_cos"
+      ],
+      "runway_mask": true,
+      "exo_continuous": [
+        "visibility",
+        "cloud_height",
+        "gust_speed"
+      ],
+      "exo_categorical": [
+        "sky_condition",
+        "has_gust",
+        "is_cavok"
+      ],
+      "graph": [
+        "graph_edge_index",
+        "graph_edge_type"
+      ],
+      "anchor_timestamp_or_cyclic_time": true
+    },
+    "forbidden_inputs": [
+      "weather_code_id",
+      "weather_label",
+      "one-hot/multi-hot weather_code_id",
+      "weather_code_id embedding",
+      "any deterministic/direct derivative of weather_code_id or weather_label",
+      "future information",
+      "evaluation labels/results",
+      "sample_id/source_index/split/status as predictive features"
+    ]
+  },
+  "metrics": {
+    "scale_convention": {
+      "classification": "[0,1], not percentage",
+      "forecast_primary": "released normalized runway scale [0,1]"
+    },
+    "forecast": {
+      "mae": "mean(abs(y_true - y_pred)) over valid sample x real-runway points, separately per horizon and feature",
+      "rmse": "sqrt(mean((y_true - y_pred)^2)) over valid sample x real-runway points, separately per horizon and feature",
+      "primary_scale": "normalized_[0,1]",
+      "required_granularity": "3 horizons x 7 features",
+      "macro_summary_if_needed": {
+        "MAE_macro_norm": "unweighted mean of 21 horizon-feature MAE values",
+        "RMSE_macro_norm": "unweighted mean of 21 horizon-feature RMSE values"
+      },
+      "source_scale_metrics": "optional_secondary_only"
+    },
+    "classification": {
+      "labels": [
+        0,
+        1,
+        2
+      ],
+      "label_order": [
+        "GOOD",
+        "PRECIP",
+        "HAZARD"
+      ],
+      "macro_f1": "unweighted mean of per-class F1 over evaluable classes",
+      "csi_per_class": "TP / (TP + FP + FN)",
+      "csi_single_field_definition": "CSI_macro",
+      "csi_macro": "unweighted mean of per-class CSI over evaluable classes",
+      "required_outputs": [
+        "Macro-F1",
+        "F1_GOOD",
+        "F1_PRECIP",
+        "F1_HAZARD",
+        "CSI_GOOD",
+        "CSI_PRECIP",
+        "CSI_HAZARD",
+        "CSI_macro",
+        "confusion_matrix",
+        "support_by_class",
+        "fp_by_class",
+        "n_ignored_labels"
+      ]
+    },
+    "zero_support_policy": {
+      "support_definition": "TP + FN",
+      "if_support_gt_0": "compute normally",
+      "if_support_eq_0": {
+        "F1": null,
+        "CSI": null,
+        "macro_policy": "exclude_from_macro_denominator_for_that_report_slice",
+        "report_fp": true,
+        "false_positive_only_flag": "true when FP > 0"
+      },
+      "if_all_classes_zero_support": "evaluation_invalid; metric=NA; fail validation",
+      "ignored_pad_unk_removed_before_confusion_matrix": true
+    }
+  },
+  "split_and_leakage_invariants": [
+    "Do not change frozen downstream train/val/sealed boundaries.",
+    "Do not generate targets across released task-partition boundaries.",
+    "Do not refit normalization on validation, temporal test, or ZBAD sealed data.",
+    "Classification must not use weather_code_id, weather_label, or direct deterministic derivatives as inputs.",
+    "Target availability filtering must depend only on timestamp/partition validity.",
+    "Model and evaluator must use the same contract version."
+  ],
+  "baseline_metadata_required": [
+    "task_contract_version",
+    "task",
+    "data_release",
+    "input_fields",
+    "target_definition",
+    "metric_scale",
+    "contract_sha256"
+  ]
+}

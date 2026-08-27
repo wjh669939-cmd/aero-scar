@@ -1,0 +1,16 @@
+{
+  "evaluator_version": "1.0.0",
+  "metric_definition_id": "AeroWF_C1_metrics_v1_contract_v2_normalized",
+  "frozen_at_utc": "2026-08-26T15:27:44Z",
+  "task_contract_version": "2.0",
+  "task_contract_sha256": "2e55c519acc44075707157813cd7a1199d6e595317c9a730b895296c80385be8",
+  "split": "val",
+  "airports": ["ZBAA", "ZSPD", "ZSSS"],
+  "forecast": {"horizons": {"T+1": 15, "T+4": 60, "T+8": 120}, "partner_internal_index": 95, "components": ["wind_x", "wind_y"], "valid_range": [0.0, 1.0]},
+  "classification": {"classes": {"GOOD": 0, "PRECIP": 1, "CLASS_HAZARD": 2}, "ignore_index": -100},
+  "imputation": {"scenarios": ["random_25", "random_50", "random_75", "feature"], "prediction_shape": "[sample, runway_slot, scenario, minute, channel]", "mask_seed": 20260823, "mask_manifest_sha256": "e4e54e1ebc612d796a8ec557107c97775d8fd9c5d86b6c0ba734c511e381159e"},
+  "aggregation": "机场内 micro；每一类同名 endpoint 跨机场、跨度和分量等权平均；退化或 null endpoint 不纳入均值但必须计数",
+  "bootstrap": {"block": "UTC 日期块", "n_replicates": 2000, "seed": 20260823, "ci_level": 0.95},
+  "degeneracy_rule": "分类 event_rate 为 0 或 1 的类标记 degenerate 并从该机场网格均值排除；预测无有效跑道或配对目标时同样标记。",
+  "clh_interface": "python -m aerowf_evaluator --predictions predictions.npz --trial-meta trial_meta.json --split val --out-dir out；不接受数据路径参数。"
+}

@@ -1,0 +1,412 @@
+{
+  "schema_version": "aerowf_v1.action_registry.v1",
+  "registry_status": "DRAFT_UNTIL_2026-08-31_FREEZE",
+  "generated_at_utc": "2026-08-24T17:20:00Z",
+  "source_doc": "local/iclr2027_plan/05_研究动作空间设计.md (v1.1)",
+  "freeze_rule": "冻结后新增/修改动作模板必须升版本号并留书面理由；LLM 自由提案不受模板限制但受 axis lock 与 schema 校验约束",
+  "axes": {
+    "representation": {
+      "status": "active",
+      "tier": 1,
+      "editable_paths_placeholder": [
+        "<DOWNSTREAM>/src/trial_features.py"
+      ],
+      "paths_note": "实际路径待 D 提供 AeroWF 修复版仓库布局后落定（不阻塞注册表冻结，路径以 axis_lock 文件为准）"
+    },
+    "objective_tier1": {
+      "status": "active",
+      "tier": 1,
+      "editable_paths_placeholder": [
+        "<DOWNSTREAM>/src/trial_objective.py"
+      ]
+    },
+    "objective_tier2": {
+      "status": "conditional",
+      "tier": 2,
+      "activation_condition": "DEC-002: T+1 anomaly reproduced on AeroWF† (deadline 9/2)",
+      "editable_paths_placeholder": [
+        "<AEROWF_REPO>/models/AirFM/unified_model.py",
+        "<AEROWF_REPO>/models/AirFM/physics_distance.py",
+        "<AEROWF_REPO>/models/AirFM/masked.py"
+      ]
+    },
+    "model": {
+      "status": "conditional",
+      "tier": 1,
+      "activation_condition": "DEC-001: constrained model axis approved (deadline 8/27)",
+      "editable_paths_placeholder": [
+        "<AEROWF_REPO>/models/AirFM/fusion/**",
+        "<AEROWF_REPO>/models/AirFM/encoders/**",
+        "<AEROWF_REPO>/models/AirFM/unified_model.py"
+      ],
+      "extra_constraints": {
+        "param_budget": "abs(delta_params) <= 0.05 * baseline_params",
+        "training_budget": "epoch/batch/optimizer/scheduler identical to parent",
+        "interface": "input/output shapes unchanged; forward+backward smoke test required before full training"
+      }
+    }
+  },
+  "actions": [
+    {
+      "action_id": "R1-wxcode-embedding",
+      "axis": "representation",
+      "tier": 1,
+      "status": "active",
+      "type": "code_level",
+      "evidence_anchor": "Table 1 脚注：输入天气码简化为二值 flag；Table 4：w/o METAR 分类 CSI 49.6→34.1",
+      "hypothesis": "输入端恢复危险天气分组语义（降水/视程障碍/对流/无），分类头不再从数值通道间接猜天气类型",
+      "target_slices": [
+        "hazard_csi",
+        "fog_haze_f1",
+        "extreme_event_forecast_error"
+      ],
+      "falsification": ">=2 机场分类 CSI 无配对改善，或预测主网格恶化超容差",
+      "data_prerequisite": "B3: METAR 天气码可恢复性确认；不可恢复则降级为现有 categorical 通道重编码"
+    },
+    {
+      "action_id": "R2-thermo-precursors",
+      "axis": "representation",
+      "tier": 1,
+      "status": "active",
+      "type": "parameterizable",
+      "evidence_anchor": "逻辑回归对照显示雾/霾少数类困难；雾的教科书前兆为 T-Td→0 + 静风",
+      "hypothesis": "露点差、气压3h趋势、阵风-平均风差是雾/锋面/湍流的物理前兆量",
+      "target_slices": [
+        "fog_haze_f1",
+        "forecast_T+4",
+        "forecast_T+8"
+      ],
+      "falsification": "少数类 F1 不升，或主网格恶化超容差",
+      "param_space": {
+        "features": {
+          "kind": "subset_nonempty",
+          "choices": [
+            "dewpoint_depression",
+            "pressure_trend_3h",
+            "gust_minus_mean"
+          ]
+        }
+      }
+    },
+    {
+      "action_id": "R3-metar-age",
+      "axis": "representation",
+      "tier": 1,
+      "status": "active",
+      "type": "parameterizable",
+      "evidence_anchor": "METAR 逐时签发但静态广播到 96 步，时效性被抹掉",
+      "hypothesis": "显式 age-of-report 特征让模型对旧报文降权",
+      "target_slices": [
+        "forecast_grid_all",
+        "metar_gap_samples"
+      ],
+      "falsification": "全预测网格无配对改善",
+      "data_prerequisite": "B3: 每条 METAR 签发时间戳",
+      "param_space": {
+        "encoding": {
+          "kind": "choice",
+          "choices": [
+            "minutes_linear",
+            "minutes_log1p",
+            "bucket_15min"
+          ]
+        }
+      }
+    },
+    {
+      "action_id": "R4-runway-frame-wind",
+      "axis": "representation",
+      "tier": 1,
+      "status": "active",
+      "type": "parameterizable",
+      "evidence_anchor": "官方指标含 Crosswind MAE 而输入为 u/v 分解，与跑道方向无关",
+      "hypothesis": "跑道坐标系顺风/侧风/阵风侧风分量提供显式几何先验",
+      "target_slices": [
+        "crosswind_mae@T+1/T+4/T+8",
+        "hazard_csi"
+      ],
+      "falsification": ">=2 机场 crosswind MAE 无配对改善，或主网格恶化超容差",
+      "data_prerequisite": "B3: 跑道方位表",
+      "param_space": {
+        "components": {
+          "kind": "subset_nonempty",
+          "choices": [
+            "headwind",
+            "crosswind",
+            "gust_crosswind"
+          ]
+        }
+      }
+    },
+    {
+      "action_id": "R5-wind-cyclic-encoding",
+      "axis": "representation",
+      "tier": 1,
+      "status": "active",
+      "type": "parameterizable",
+      "evidence_anchor": "u/v 分解在低风速下方向信息被幅值淹没",
+      "hypothesis": "风向 sin/cos 周期编码 + 风速-风向解耦改善低风速方向表示",
+      "target_slices": [
+        "low_wind_slice",
+        "forecast_T+1"
+      ],
+      "falsification": "低风速切片与 T+1 均无配对改善，或主网格恶化超容差",
+      "param_space": {
+        "variant": {
+          "kind": "choice",
+          "choices": [
+            "sincos_only",
+            "sincos_plus_speed_decouple"
+          ]
+        }
+      }
+    },
+    {
+      "action_id": "R6-multiscale-diff",
+      "axis": "representation",
+      "tier": 1,
+      "status": "active",
+      "type": "parameterizable",
+      "evidence_anchor": "Table 4: w/o Freq 预测 RMSE 0.759→0.865；单一 FFT 只有全窗口分辨率",
+      "hypothesis": "1步/4步差分与滚动方差补充战术尺度瞬变信息",
+      "target_slices": [
+        "forecast_T+1",
+        "gust_slice"
+      ],
+      "falsification": "T+1 无改善，或长时效明显恶化",
+      "param_space": {
+        "diff_steps": {
+          "kind": "subset_nonempty",
+          "choices": [
+            1,
+            4
+          ]
+        },
+        "rolling_var_window": {
+          "kind": "choice",
+          "choices": [
+            0,
+            4,
+            8,
+            16
+          ]
+        }
+      }
+    },
+    {
+      "action_id": "O1-horizon-weighted-mse",
+      "axis": "objective_tier1",
+      "tier": 1,
+      "status": "active",
+      "type": "parameterizable",
+      "evidence_anchor": "三个预测时效共用统一 MSE，隐含按方差大小分配容量",
+      "hypothesis": "时效加权（含反向配置）重分配容量到目标时效",
+      "target_slices": [
+        "forecast_by_weighted_horizon"
+      ],
+      "falsification": "目标时效无改善，或其余时效恶化超容差",
+      "param_space": {
+        "weights_t1_t4_t8": {
+          "kind": "choice",
+          "choices": [
+            [
+              2,
+              1,
+              1
+            ],
+            [
+              3,
+              1,
+              1
+            ],
+            [
+              1,
+              1,
+              2
+            ],
+            [
+              1,
+              1,
+              3
+            ],
+            [
+              2,
+              1,
+              2
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "action_id": "O2-event-weighted-loss",
+      "axis": "objective_tier1",
+      "tier": 1,
+      "status": "active",
+      "type": "parameterizable",
+      "evidence_anchor": "平均误差被平静天气主导",
+      "hypothesis": "危险天气事件加权（权重仅由训练集标签定义）改善业务关键样本拟合",
+      "target_slices": [
+        "extreme_event_forecast_error",
+        "hazard_csi_guardrail"
+      ],
+      "falsification": "事件切片无改善，或整体 MAE 恶化超容差",
+      "data_prerequisite": "B3: 训练侧事件切片定义",
+      "param_space": {
+        "event_weight": {
+          "kind": "choice",
+          "choices": [
+            2,
+            3,
+            5,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "action_id": "O3-classwise-focal",
+      "axis": "objective_tier1",
+      "tier": 1,
+      "status": "active",
+      "type": "parameterizable",
+      "evidence_anchor": "分类用统一 Focal Loss，21 类长尾未按类校准",
+      "hypothesis": "Focal Loss 的 α/γ 按类频率分层设置，可改善雾/霾等少数类的校准与召回",
+      "target_slices": [
+        "fog_haze_f1",
+        "macro_f1"
+      ],
+      "falsification": "少数类不升，或多数类崩",
+      "param_space": {
+        "alpha_scheme": {
+          "kind": "choice",
+          "choices": [
+            "inverse_freq",
+            "sqrt_inverse_freq"
+          ]
+        },
+        "gamma": {
+          "kind": "choice",
+          "choices": [
+            1.0,
+            2.0,
+            3.0
+          ]
+        }
+      }
+    },
+    {
+      "action_id": "O4-horizon-conditioned-alignment",
+      "axis": "objective_tier2",
+      "tier": 2,
+      "status": "active",
+      "type": "code_level",
+      "evidence_anchor": "Table 3: Scratch T+1 MAE 反超预训练 (0.3030 vs 0.3086)，但 T+8 与稀疏插补预训练大幅领先；本地三 seed 复现负迁移（配对 SNR 3.48，三 seed 同号）",
+      "hypothesis": "统一几何对齐对短时瞬态负迁移；λ_align 随因果遮挡预测距离衰减可两全",
+      "target_slices": [
+        "forecast_T+1_vs_scratch",
+        "forecast_T+8",
+        "sparse_imputation"
+      ],
+      "falsification": "T+1 仍落后 Scratch，或 T+8/插补优势丢失"
+    },
+    {
+      "action_id": "O5-coarse-scale-alignment",
+      "axis": "objective_tier2",
+      "tier": 2,
+      "status": "active",
+      "type": "code_level",
+      "evidence_anchor": "与 O4 同一证据：论文 Table 3 Scratch T+1 反超预训练；本地三 seed 复现负迁移（forecast scratch RMSE 一致优于 pretrained，配对 SNR 3.48，三 seed 同号）",
+      "hypothesis": "对齐先验只约束降采样序列的粗尺度形状，不约束逐步瞬变",
+      "target_slices": [
+        "forecast_T+1_vs_scratch",
+        "forecast_T+8",
+        "sparse_imputation"
+      ],
+      "falsification": "T+1 仍落后 Scratch，或 T+8/插补优势丢失（与 O4 同判据）"
+    },
+    {
+      "action_id": "O6-masking-ratio",
+      "axis": "objective_tier2",
+      "tier": 2,
+      "status": "active",
+      "type": "parameterizable",
+      "evidence_anchor": "预训练随机/因果遮挡 50:50 是未经论证的默认值",
+      "hypothesis": "配比应反映下游任务组合",
+      "target_slices": [
+        "forecast_grid_vs_imputation_grid_tradeoff"
+      ],
+      "falsification": "预测无改善，或插补退化超容差",
+      "param_space": {
+        "random_causal_ratio": {
+          "kind": "choice",
+          "choices": [
+            "30:70",
+            "40:60",
+            "60:40",
+            "70:30"
+          ]
+        }
+      }
+    },
+    {
+      "action_id": "M1-horizon-conditioned-fusion-gate",
+      "axis": "model",
+      "tier": 1,
+      "status": "conditional",
+      "type": "code_level",
+      "evidence_anchor": "w/o Freq 使长时效 RMSE 最大恶化，而门控融合对时效不敏感",
+      "hypothesis": "短时效偏向时域流、长时效偏向频域流，静态门是折衷",
+      "target_slices": [
+        "forecast_by_horizon"
+      ],
+      "falsification": "任一时效无改善，或整体恶化超容差"
+    },
+    {
+      "action_id": "M2-metar-decay-injection",
+      "axis": "model",
+      "tier": 1,
+      "status": "conditional",
+      "type": "code_level",
+      "evidence_anchor": "METAR 逐时签发却广播到 96 步（与 R3 同源，作用在机制层）",
+      "hypothesis": "旧报文应随时效衰减注入权重",
+      "target_slices": [
+        "forecast_grid_all"
+      ],
+      "falsification": "全网格无配对改善"
+    },
+    {
+      "action_id": "M3-cross-runway-aggregator",
+      "axis": "model",
+      "tier": 1,
+      "status": "conditional",
+      "type": "code_level",
+      "evidence_anchor": "Table 4: w/o Hier 显著伤插补；Mean/Max Pool 伤 Crosswind 与 CSI",
+      "hypothesis": "跑道间关联的显式建模（参数预算内轻量注意力）优于均值式聚合",
+      "target_slices": [
+        "imputation_grid",
+        "crosswind_mae"
+      ],
+      "falsification": "插补/Crosswind 切片无配对改善"
+    }
+  ],
+  "negative_list": [
+    "data 轴（外部数据获取）：需污染过滤器体系，本篇不做",
+    "纯训练超参扫描（lr/batch/epoch）：属 Optuna 对照臂领地，不属任何轴",
+    "跨轴复合动作：违反 axis lock，validator 直接拒绝"
+  ],
+  "control_arms": {
+    "random_arm": "从 active 状态模板及其参数范围均匀合法采样（不含 LLM 自由动作），trial 数与 LLM 臂镜像",
+    "optuna_arm_p1": "冻结训练超参空间内搜索，同预算，视人时启用"
+  },
+  "changelog": [
+    {
+      "date": "2026-08-27",
+      "change": "G-13 演练发现：editable_paths_placeholder 仍为设计期占位路径，与 axis_lock V1.0_FROZEN 的 allow 不一致；已对齐为真实路径（axis_lock 为唯一执法源，registry 此字段仅供 trial 记录展示）"
+    },
+    {
+      "date": "2026-08-27",
+      "change": "DEC-002 通过：O4-O6 由 conditional 转 active（M1-M3 维持 conditional，DEC-001 本期不激活，9/2 复议）"
+    }
+  ]
+}

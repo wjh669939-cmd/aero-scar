@@ -1,0 +1,89 @@
+{
+  "schema_version": "aerowf_v1.axis_lock.v1",
+  "status": "V1.0_FROZEN_2026-08-27（G-8 抽薄验收通过：seed43 复跑五阶段指标与原结果 bit 级一致，delta 全 0）",
+  "generated_at_utc": "2026-08-26T15:50:00Z",
+  "aerowf_repo_root": "/root/autodl-tmp/aerowf_baseline/AeroWF",
+  "downstream_root": "/root/autodl-tmp/aerowf_downstream_v2",
+  "repo_layout_source": "D 的 CODE_MAP.md（8/26 深夜交付，4 个文件级问题全部回答）",
+  "runtime_host_decision": "首选：discovery 在 D 的 3090 机器运行（AeroWF 环境已验证，与基线同硬件）；本机 4090（torch2.12/cu130，平时无卡模式）作备选/分流，启用前提=在 4090 上复刻 torch2.5.1/cu124 环境并通过同 seed 跨机一致性验证（08 红线）",
+  "enforcement": "trial patch 提交后、训练前，由 validator 对 git diff 逐文件校验；越界即拒绝，不进入训练",
+  "known_risk_file_mixing": {
+    "status": "RESOLVED_2026-08-27",
+    "resolution": "D 按 15 文档完成 move-only 抽薄（trial_features.py / trial_objective.py）；验收：seed43 复跑 full_pipeline 五阶段指标与原结果 bit 级一致（预训练 val_loss 0.005464 / Fc Scr RMSE 0.04812 / Fc Pre 0.05235 / Cls Scr F1 0.7275 / Cls Pre 0.7349，delta 全 0）；两主脚本随即进入 locked_paths_always；详细报告存 D 侧机器",
+    "original_problem": "aerowf_forecast_train_v2.py / aerowf_classification_train_v2.py 同一文件混含 R 轴对象+O 轴对象+训练循环，文件级锁不成立"
+  },
+  "locked_paths_always": [
+    "models/AirFM/unified_trainer.py（预训练循环+optimizer）",
+    "aerowf_downstream_v2/src/aerowf_full_pipeline_v2.py（五阶段调度器）",
+    "下游脚本中的 train_epoch/evaluate/main（训练循环与 optimizer 段，抽薄后整文件锁定）",
+    "utils/**、data/**、subset/**、results/**（只读）",
+    "aerowf_delivery/v1/extracted/**（冻结数据，只读挂载）",
+    "contracts/DOWNSTREAM_TASK_CONTRACT_v2.json（任务协议）",
+    "seed 与预算配置"
+  ],
+  "axis_paths": {
+    "representation": {
+      "allow": [
+        "<DOWNSTREAM>/src/trial_features.py"
+      ],
+      "active": true,
+      "refactor_source": "自 aerowf_forecast_train_v2.py::AirportForecastDataset 与 aerowf_classification_train_v2.py::AllowedContextEncoder/AirportClassificationDataset、pretrain::FrozenAeroWFDataset 特征段抽出（G-8）",
+      "note": "禁止触碰 map_labels（标签映射属 contract，不是特征）；G-8 抽薄验收前本轴不得实际放行 trial"
+    },
+    "objective_tier1": {
+      "allow": [
+        "<DOWNSTREAM>/src/trial_objective.py"
+      ],
+      "active": true,
+      "refactor_source": "自 masked_mse 与 balanced_class_weights/cross_entropy 组装段抽出（G-8）",
+      "note": "G-8 抽薄验收前本轴不得实际放行 trial"
+    },
+    "objective_tier2": {
+      "allow": [
+        "<AEROWF_REPO>/models/AirFM/unified_model.py",
+        "<AEROWF_REPO>/models/AirFM/physics_distance.py",
+        "<AEROWF_REPO>/models/AirFM/masked.py"
+      ],
+      "locked_within_axis": [
+        "models/AirFM/soft_dtw_cuda.py（底层 CUDA 实现不许改，只许改其调用与权重）"
+      ],
+      "active": true,
+      "note": "DEC-002 于 2026-08-27 通过（先于任何候选结果记录）：三 seed 报告确认预训练对 forecast 负迁移（SNR 3.48，三 seed 同号），tier-2 动作（O4-O6）直接针对该信号；unified_model.py 允改范围限 unified_pretrain_forward 的 λ 组装段（人审 diff 兜底）"
+    },
+    "model": {
+      "allow": [
+        "<AEROWF_REPO>/models/AirFM/fusion/**",
+        "<AEROWF_REPO>/models/AirFM/encoders/**",
+        "<AEROWF_REPO>/models/AirFM/unified_model.py"
+      ],
+      "active": false,
+      "note": "unified_model.py 允改范围限 UnifiedSeries2Vec.encode 融合与层级组装段（人审 diff 兜底）",
+      "extra_validators": [
+        "param_budget_counter",
+        "io_shape_check",
+        "forward_backward_smoke"
+      ]
+    }
+  },
+  "hidden_data_guard": {
+    "certification_paths_forbidden_tokens": [
+      "AeroWF_v1_EVALUATION",
+      "sealed/",
+      "ZBAD",
+      "pretrain/test",
+      "c_evaluator_private",
+      "event_slices"
+    ],
+    "note": "与 D 手册 §9 边界一致；c_evaluator_private = C 私有配置目录；event_slices 随 C 的 test_lock_state.json（8/27 入库）对齐补入"
+  },
+  "trial_success_criteria_source": "D 手册 §6：exit 0 + pipeline_summary.json + 五阶段 status=success + test_used=false + best_model.pth 存在 + pretrained 任务 missing/unexpected_keys 为空；失败判定同手册，失败 trial 不入候选比较",
+  "invalidated_results_ledger": [
+    {
+      "run": "aerowf_official_full_scratch_30epoch_v1 (scratch rand25)",
+      "date_invalidated": "2026-08-26",
+      "reason": "使用冻结前数据训练，且独立评测机场数据混入训练集；指标全部作废（D 确认）",
+      "consequence": "D1 方差报告与 D3 正式基线一律在冻结交付区 release_v1 上按 contract v2 重跑；早前 'val 0.23433 ≈ 论文 0.236' 的比较随之作废"
+    }
+  ],
+  "surviving_runs_note": "aerowf_unified_pretrain_full_formal_seed42_v1 与 seed43 full_pipeline v2（冻结数据、全审计通过）有效；seed43 为 D3/D4 首个正式数据点"
+}

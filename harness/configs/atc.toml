@@ -1,0 +1,40 @@
+# ATC / AeroWF profile. Strict paper protocol (arXiv:2606.22731) on DATA_CONTRACT_v1.
+# Search-visible: release_v1/trainval/{train,val}. Sealed/ZBAD/pretrain/test never enter the loop.
+
+profile = "atc"
+run_root = "runs"
+
+[llm]
+provider = "openai_compat"
+model = "deepseek-chat"
+base_url = "https://api.deepseek.com/v1"
+temperature = 0.2
+
+[research]
+# 轴配置对齐 aerowf-v1 冻结注册表（05 文档）：R + O 双轴；
+# physics 并入 representation（物理量特征即 R2/R4），data 轴在负清单禁用；
+# model 轴视 DEC-001（8/27）决策后加回 "model"。
+budget_per_axis = 3
+axes = ["representation", "objective"]
+equal_budget = true
+selection_threshold = 0.005
+safety_csi_tolerance = 0.02
+experiment_timeout_sec = 180
+
+[domain]
+name = "aerowf"
+baseline = "aerowf_persistence"
+pipeline_root = "examples/aerowf_research/pipeline"
+data_root = "../AeroWF/数据接口/AeroWF_v1_MODEL_TRAINING/release_v1"
+sealed_root = ""
+source_airports = ["ZBAA", "ZSPD", "ZSSS"]
+holdout_airports = ["ZBAD"]
+max_samples_per_split = 128
+inner_val_frac = 0.20
+inner_split_seed = 42
+
+[certification]
+splits = ["temporal", "spatial", "event"]
+freeze_top_k_per_axis = 1
+routing_threshold = 0.005
+sealed_required = false

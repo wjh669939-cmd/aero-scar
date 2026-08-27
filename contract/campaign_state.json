@@ -1,0 +1,179 @@
+{
+  "schema_version": "aerowf_v1.campaign_state.v1",
+  "generated_at_utc": "2026-08-24T17:20:00Z",
+  "campaign_id": "aerowf-v1",
+  "status": "preflight",
+  "new_runs_allowed": true,
+  "preflight_only": true,
+  "formal_discovery": "blocked",
+  "test_lock_state": "PENDING_CUSTODIAN_SEAL",
+  "test_accessed": false,
+  "gpu_discovery_cost": 0,
+  "predecessor_campaign": "sevir-v1",
+  "predecessor_status": "shelved_preflight",
+  "lineage_isolation": {
+    "radar_artifacts_migrated": false,
+    "sevir_artifacts_migrated": false,
+    "note": "aerowf-v1 从零建立谱系，禁止迁移任何前代 campaign 的 proposal/metrics/checkpoint"
+  },
+  "planning_docs": [
+    "local/iclr2027_plan/01_现状梳理与思路.md",
+    "local/iclr2027_plan/02_时间计划.md",
+    "local/iclr2027_plan/05_研究动作空间设计.md",
+    "local/iclr2027_plan/06_任务书_数据侧B.md",
+    "local/iclr2027_plan/07_任务书_评测侧C.md",
+    "local/iclr2027_plan/08_任务书_AeroWF训练侧D.md"
+  ],
+  "independent_contracts_required": [
+    "data_digest",
+    "preprocessing_digest",
+    "split_manifest",
+    "evaluator_version",
+    "action_registry_digest",
+    "axis_lock_digest",
+    "decision_policy_digest",
+    "campaign_budget",
+    "source_commit",
+    "test_lock_state"
+  ],
+  "allowed_phases": [
+    "00_contract",
+    "01_data_qc",
+    "02_baseline_pilot",
+    "03_parent_calibration"
+  ],
+  "blocked_phases": [
+    "04_discovery",
+    "05_certification"
+  ],
+  "phase_unblock_conditions": {
+    "04_discovery": [
+      "g_parent_variance_acceptable (D1, 8/26)",
+      "split_manifest_v1_sealed (B1)",
+      "evaluator_v1_frozen (C1, 8/29)",
+      "decision_policy_frozen (C3+A, 8/31)",
+      "action_registry_frozen (A, 8/31)",
+      "axis_lock_smoke_passed (A, 8/31)"
+    ],
+    "05_certification": [
+      "candidates_frozen_with_digests (9/10)",
+      "custodian_seal_verified (C2)"
+    ]
+  },
+  "pending_decisions": [
+    {
+      "id": "DEC-001-model-axis",
+      "question": "是否纳入受约束 Model 轴（05 文档 §八·五）",
+      "deadline": "2026-08-27",
+      "owner": "A + 导师",
+      "default_if_undecided": "两轴方案（R/O），M 轴动作保持 registry 中 conditional 状态不激活"
+    },
+    {
+      "id": "DEC-002-tier2-pretraining",
+      "question": "tier-2（O4-O6）是否启用，前提 = T+1 异常在 AeroWF† 上复现（D4）",
+      "deadline": "2026-09-02",
+      "owner": "D 提供证据, A + 导师决策",
+      "default_if_undecided": "tier-2 不启用"
+    },
+    {
+      "id": "DEC-003-zbad-in-pretraining",
+      "question": "预训练语料若含 ZBAD：三机场重预训练 vs 空间认证主张降级（06 文档 B2）",
+      "deadline": "2026-08-27",
+      "owner": "B 提供证据, 导师拍板",
+      "default_if_undecided": "主张措辞降级",
+      "status": "RESOLVED_2026-08-26",
+      "resolution": "B 交付 RELEASE_NOTES_v1 明确 'ZBAD present: NO'（Aero-Pre2020 仅 ZBAA/ZSPD/ZSSS）；空间认证主张无需降级，不触发重预训练"
+    }
+  ],
+  "delivery_log": [
+    {
+      "date": "2026-08-26",
+      "event": "B 交付 AeroWF_v1 冻结数据（MODEL_TRAINING + EVALUATION 双包，含 DOWNSTREAM_TASK_CONTRACT_v1）；C 确认 C2 认证封存完成（EVALUATION.7z sha256=220228aa…与 B 侧 DELIVERY_ARCHIVES_SHA256 一致）",
+      "local_verification": "首轮解压副本 13 个 runway.npy 截断；同日经 scp 重传 MODEL_TRAINING.7z（33MB，sha256=b50b0a92…与 DELIVERY_ARCHIVES 一致），解压后 194/194 文件哈希通过、12/12 runway.npy 完整；ZBAA train runway shape (18866,4,96,11)",
+      "custody": "本机 AeroWF_v1_EVALUATION 已清除（CUSTODY_REMOVAL_LOG.txt）；损坏截断目录已删；sealed 数据不驻留 discovery 主机",
+      "note": "详见 local/iclr2027_plan/13_数据评测交付受理报告.md；DOWNSTREAM_TASK_CONTRACT_v1 已入库 00_contract"
+    },
+    {
+      "date": "2026-08-26_evening",
+      "event": "DOWNSTREAM_TASK_CONTRACT v2 发布并入库（sha256=2e55c519…，v1 SUPERSEDED）：正式预测回归论文协议 T+1/4/8=15/60/120min × wind_x/wind_y；v1 分钟级七变量改名 H+1m/4m/8m 仅作扩展。C2 v2 二次封存受理（事件切片按 v2 重做，EVALUATION.7z 哈希不变）",
+      "pending": "C 补正：v2 事件规则文档缺失+封存清单缺其哈希（12 文档 §四·五）；D 需按 v2 重跑任何 v1 语义正式预测 baseline",
+      "note": "12 文档已修订至 v1.1（按 v2 网格），待用户发给 C"
+    },
+    {
+      "date": "2026-08-26_night",
+      "event": "D 交付仓库目录树（axis_lock M 轴路径已填：models/AirFM/{fusion,encoders}，4 个文件级问题待答）；D 确认 scratch rand25 30epoch 指标作废（冻结前数据+评测机场混入训练）",
+      "consequence": "D1 方差报告/D3 基线在冻结 release_v1 上按 contract v2 重跑；go/no-go 决策点顺延（建议 8/28 站会）；pretrain formal seed42（冻结数据）仍有效",
+      "note": "作废记录见 axis_lock_v1_draft.json 的 invalidated_results_ledger"
+    },
+    {
+      "date": "2026-08-26_latenight",
+      "event": "D 交付 HANDOFF+CODE_MAP（v2 全流程 seed43 全审计通过：五阶段 success、test_used=false、泄漏检查过；统一入口 aerowf_full_pipeline_v2.py）；C 交付 C1 evaluator v1.0 冻结包（边界测试全过、golden fail-safe 验证）+ C2 v3 封存补正（事件规则哈希入清单）",
+      "science_signal": "seed43：forecast scratch 优于 pretrained、classification pretrained 优于 scratch——T+1 异常的任务级复现，DEC-002 证据已到",
+      "val_caveat": "ZSPD/ZSSS 的 val 分类全 GOOD（退化已预注册剔除），分类搜索信号仅来自 ZBAA",
+      "runtime_decision": "discovery 建议定在 D 的 3090 机器；本机为 4090+torch2.12/cu130（平时无卡模式），与 D 已验证环境（3090+torch2.5.1/cu124+SoftDTW CUDA）存在跨硬件/跨版本漂移风险（08 任务书红线：确认与认证环境须同 GPU 型号）；本机 4090 作为备选/分流方案，启用前提=同 seed 同 config 跨机一致性验证通过",
+      "note": "axis_lock 升 v1.0-RC；剩余门槛见 00_contract/README 与 10 文档 G1/G5"
+    },
+    {
+      "date": "2026-08-27",
+      "from": "D + A",
+      "items": [
+        "D1 三 seed 配对方差报告（42/43/2027，Contract V2，validation only）",
+        "G-8 抽薄验收：seed43 复跑五阶段 delta 全 0（bit 级一致），axis_lock 升 V1.0_FROZEN",
+        "G-7 真机验收：执行器驱动 full_pipeline smoke success（trial_20260827_003243_seed1001_c71c23）",
+        "部署：CLH+contract_tools+合同区落 D 机 /root/autodl-tmp/clh_deploy/，71 项测试全绿，DeepSeek API 烟测通过",
+        "decision_policy v1.1 数值标定完成（primary=RMSE_macro_norm；分类降 guardrail；hazard 禁作选优），待 C+导师 8/31 前签字冻结"
+      ],
+      "key_findings_d1": {
+        "forecast_pretrain_negative_transfer": "SNR 3.48（RMSE）/ 4.99（MAE），3/3 符号一致——效应主导，DEC-002 证据充分",
+        "cls_pretrain_positive_transfer": "SNR 1.13，3/3 同号但幅度噪声大",
+        "hazard_f1": "SNR 0.49 符号不一致——噪声主导，禁止作为接受/选优依据"
+      }
+    },
+    {
+      "date": "2026-08-27 PM",
+      "from": "C + A",
+      "items": [
+        "G-9 关闭：C 私有配置部署 D 机（c_evaluator_private，700 权限），golden 自检 completed，manifest 哈希对账一致（split 7744acf8… / norm 867e63fb…）",
+        "G-10 关闭：真实 checkpoint → predictions_adapter → C evaluator 子进程，classification(15 endpoint) 与 forecast(36 endpoint) 双腿 completed，产物归档 D 机 clh_deploy/g10_joint_debug/",
+        "c_evaluator_private 加入 axis_lock 禁访 token 与 LLM 上下文拦截（双端同步）",
+        "A 侧新增 predictions_adapter（虚拟槽位中和、缺失默认拒绝）；evaluator_client 按 C 冻结版实测合同重写（endpoints 列表 + 退出码 0/2/3）；55 项单测全绿"
+      ],
+      "open_interface_gaps": {
+        "gap1_D_must_fix": "forecast 预测导出缺每机场尾部 8 条（3953/3961）；正式 trial 前必须全覆盖导出（尾部样本在 T+1/T+4 会被计分）",
+        "gap2_C_decision": "值域检查作用范围：建议 v1.0.1 只查计分位置（虚拟槽位跳过）；真实跑道微越界（seed43 scratch 2 值 1.05）是否维持拒绝待站会定案"
+      }
+    },
+    {
+      "date": "2026-08-27 午后",
+      "from": "D + A",
+      "items": [
+        "缺口 1 关闭：D 验证导出改全覆盖（11883 行），训练过滤不变；seed43 scratch G-8 权重重导出经适配器零填充通过，重叠预测 max|Δ|≈5e-7",
+        "缺口 2 实测升级：seed43 scratch parent 基线全量导出过冻结评测器 = invalid（out_of_range: 2，ZSSS T+1 wind_x 1.05000/1.00402，均在计分位置）——parent 不可评则 discovery 无基准",
+        "A 向 C 提出 v1.0.1 补丁要求（19 文档 §四）：值域检查收缩到计分位置 + 预注册有界容忍带（[-0.1,1.1] 且 ≤0.01% 计分值照常计分，超限维持 invalid）+ golden/digest 随行更新",
+        "治理留痕：容忍带先于任何候选存在而预注册，非看结果调规则"
+      ]
+    },
+    {
+      "date": "2026-08-27 下午",
+      "from": "C + A",
+      "items": [
+        "C1 v1.0.1 交付并验收：计分位置范围检查 + 预注册容忍带（[-0.1,1.1]/0.01%）；seed43 scratch 基线复评 completed（RMSE 0.0481 = D 侧 0.04812），缺口 2 关闭",
+        "G-13 随机臂演练关闭：rand-rep-000（R5 sincos）+ rand-obj-000（O2 事件加权）两趟全链路 completed；axis_lock 正反例、result schema、轴文件还原全部验证",
+        "G-13 发现修复：action registry editable_paths_placeholder 与 axis_lock 冻结 allow 不一致，已对齐（55 单测全绿，双机同步）",
+        "C1 v1.0.2 升级进行中（degenerate 按 V2、逐类 F1、data_release/forecast_protocol 元数据）；A 侧客户端前向兼容无需改码，验收清单在 19 文档 §五；新 G-14 门跟踪",
+        "D 确认 1.05000 非人为缩放：LayerNorm+Linear 直接输出，属线性头自然溢出"
+      ]
+    },
+    {
+      "date": "2026-08-27 16:20",
+      "from": "C + A",
+      "items": [
+        "C1 v1.0.2 交付并通过 G-14 验收：golden 一致；seed43 scratch 基线 forecast RMSE_macro_norm 0.0481047 与 v1.0.1 完全一致；classification 腿 completed，逐类 F1/CSI 补齐，ZSPD/ZSSS 16 endpoint 按 V2 新语义标 degenerate（保数值+排除 overall）",
+        "metrics.json 新增 decision_policy_metrics：五键与 decision_policy v1.1 1:1 对齐（RMSE_macro_norm/MAE_macro_norm/classification_macro_f1/classification_csi_macro/hazard_class_f1），hazard guardrail 正式可执行（seed43 scratch hazard_class_f1=0.5506）",
+        "配置 SHA 已登记：evaluator_config_v1.json = e52c8404…（全清单见 C reports/SHA256摘要.json）",
+        "imputation_grid_mean 提案定义写入 decision_policy 草案（映射 overall.imputation.mse），待 G-12 站会签字",
+        "discovery 开跑前置技术门全部关闭：仅剩 G-12 站会决策（M 轴 DEC-001、seeds v1.1 追认、decision_policy 签字、go/no-go）"
+      ]
+    }
+  ]
+}

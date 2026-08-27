@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aerowf_v1.trial.v1",
+  "title": "AeroWF-v1 Trial Record",
+  "type": "object",
+  "required": [
+    "trial_id", "arm", "axis", "tier", "parent_trial", "action_id",
+    "hypothesis", "evidence_anchor", "target_slices", "falsification",
+    "editable_paths", "budget", "created_at_utc"
+  ],
+  "properties": {
+    "trial_id": {"type": "string", "pattern": "^(llm|rand|optuna)-(rep|obj|model)-[0-9]{3}$"},
+    "arm": {"enum": ["llm", "random", "optuna"]},
+    "axis": {"enum": ["representation", "objective_tier1", "objective_tier2", "model"]},
+    "tier": {"enum": [1, 2]},
+    "parent_trial": {"type": "string"},
+    "action_id": {
+      "type": "string",
+      "description": "模板动作 ID，或 LLM 自由提案时为 'free-<slug>'"
+    },
+    "is_free_proposal": {"type": "boolean", "default": false},
+    "hypothesis": {"type": "string", "minLength": 20},
+    "evidence_anchor": {"type": "string", "minLength": 10},
+    "target_slices": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "expected_effect": {"type": "string"},
+    "falsification": {"type": "string", "minLength": 10},
+    "editable_paths": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "patch_digest": {"type": "string", "description": "diff 的 SHA-256，validator 通过后填写"},
+    "config_digest": {"type": "string"},
+    "budget": {
+      "type": "object",
+      "required": ["gpu_hours_cap", "seeds"],
+      "properties": {
+        "gpu_hours_cap": {"type": "number"},
+        "seeds": {"type": "array", "items": {"type": "integer"}}
+      }
+    },
+    "model_axis_extra": {
+      "type": "object",
+      "description": "axis=model 时必填",
+      "properties": {
+        "baseline_param_count": {"type": "integer"},
+        "candidate_param_count": {"type": "integer"},
+        "param_delta_ratio": {"type": "number"},
+        "smoke_test_passed": {"type": "boolean"}
+      }
+    },
+    "created_at_utc": {"type": "string", "format": "date-time"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"axis": {"const": "model"}}},
+      "then": {"required": ["model_axis_extra"]}
+    }
+  ]
+}

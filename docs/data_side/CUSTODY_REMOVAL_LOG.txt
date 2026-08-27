@@ -1,0 +1,6 @@
+2026-08-25T18:25:23Z ACTION=custody_purge_on_discovery_host
+  target: local/data_side/AeroWF_v1_EVALUATION/
+  status: ABSENT_AT_PURGE (directory not present when removal ran; confirmed EVAL_GONE by post-check)
+  reason: sealed evaluation data must not reside on discovery/training host; C holds sealed original (sha256 220228aa...)
+  residual_scan: no sealed/temporal or sealed/spatial/ZBAD under /root/autodl-tmp (maxdepth 4)
+  kept_docs_only: EVALUATION_SIDE_HANDOFF_v1.md (handoff text, no sealed tensors)

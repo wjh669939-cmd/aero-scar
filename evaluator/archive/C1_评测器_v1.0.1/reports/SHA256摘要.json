@@ -1,0 +1,16 @@
+{
+  "scope": "C1_评测器_v1.0.1 的全部正式文件；不含 C 私有数据、私有配置和私有验证脚本。",
+  "files": {
+    "config/evaluator_config_v1.json": "c6384ca30534221e2b87b4ef77bbc281fabe7ae102f0825f67e5ed3a85cc0fed",
+    "config/fixed_mask_manifest_val_v1.json": "e4e54e1ebc612d796a8ec557107c97775d8fd9c5d86b6c0ba734c511e381159e",
+    "config/label_groups_v1.json": "630da6ccc62cddfb5b67c94f5da5a8e89fca3c4feb23623287464a9254677ab3",
+    "evaluator/aerowf_evaluator/__init__.py": "20e1231f4ac918ad2115f9936340a98af340e3478c46c6d3997d6fc46ee4eca8",
+    "evaluator/aerowf_evaluator/__main__.py": "475f0d8b466a721582ee1711fe93293d5b695de5d0cbcbdfe8ea4e869c398e67",
+    "golden/expected_metrics.json": "968f9b15c9f950f682f56281ad5d3963c7db12ff757e077112caea60294a7cc1",
+    "golden/predictions.npz": "65a5fc82e6d0f516d02a493ce62451a97283fe3b5011dff3238b5cd4f21c01e7",
+    "golden/trial_meta.json": "0c76994ce04cd45a3196f1f223c3f0fb21c409144804b2426261a5d1a70410bf",
+    "README.md": "4a59a7c910269338e6f1dcfd833e830ea1a36d14f4ba66d996bfd183dd45f92c",
+    "reports/boundary_test_report_v1.json": "a1a3c1b8ddd43ea1db4c17eb1041664e02ed7b50b7eaa2c76025b1d90e66f9f0",
+    "reports/val_sanity_report_v1.json": "8d3043bd6c8accd0ec0cd3134ccb7206ade02190ea45be6c48e2b096c9482496"
+  }
+}
