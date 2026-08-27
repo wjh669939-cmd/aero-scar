@@ -4,6 +4,16 @@ All notable states of this archive are documented here.
 Component versions are frozen contracts: any change requires a version bump,
 golden/report regeneration where applicable, and a written rationale in `docs/`.
 
+## unreleased — 2026-08-28 (pre-push archive)
+
+Docs and governance catch-up; no harness/evaluator behavior change.
+
+- Add plan docs 17/18/19 (C private deploy req, 8/27 standup, G-10 joint-debug) and 25 (Axis Profile scheme for meeting).
+- Update docs/iclr2027_plan/14_完成清单/README.md org note: C private dir clones with image (no per-machine redeploy).
+- Add contract/decision_policy_v1.1_SIGNOFF.md (C+A frozen 2026-08-27).
+- Add docs/model_side/g8_seed43_consistency_report.md.
+- Add discovery/parent_refs_metrics/seed3407_summary.md (metrics only; seed5519 pending).
+
 ## v0.1.0-pre-discovery — 2026-08-27
 
 First archived snapshot. All pre-discovery gates (G-1 .. G-14) closed;
