@@ -38,7 +38,12 @@ class TestProposalParser(unittest.TestCase):
         self.assertFalse(out.trial_record["is_free_proposal"])
 
     def test_free_proposal_flagged(self):
-        payload = {**VALID_PAYLOAD, "action_id": "free-wind-shear-feature"}
+        # v0.3（22 号方案）：自由提案必须携带 non_expressibility
+        payload = {
+            **VALID_PAYLOAD,
+            "action_id": "free-wind-shear-feature",
+            "non_expressibility": "现有模板均为既定特征组合，无法表达跨时间步风切变导数这类新构造特征",
+        }
         out = parse_llm_proposal(json.dumps(payload, ensure_ascii=False), 1, "parent")
         self.assertTrue(out.ok, out.errors)
         self.assertTrue(out.trial_record["is_free_proposal"])

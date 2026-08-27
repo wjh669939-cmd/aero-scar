@@ -71,6 +71,19 @@
     {
       "date": "2026-08-27",
       "change": "C1 v1.0.2 起 metrics.json 提供 decision_policy_metrics 直接映射（RMSE_macro_norm/MAE_macro_norm/classification_macro_f1/classification_csi_macro/hazard_class_f1），键名与本 policy 1:1 对齐，A 侧无需二次换算；imputation_grid_mean 提案定义已写入对应 guardrail，待签字"
+    },
+    {
+      "date": "2026-08-27",
+      "change": "22 号方案落地：自由提案触发规则（同轴连续 2 refuted 且模板穷举→强制自由，豁免条款保留）、non_expressibility 真实性字段、三类别记账口径写入 reporting_categories；全部先于任何候选结果预注册"
     }
-  ]
+  ],
+  "reporting_categories": {
+    "note": "22 号方案（2026-08-27 预注册，先于任何候选）：三类别分离记账",
+    "categories": {
+      "random_arm": "模板+param_space 均匀采样；结构化搜索基线",
+      "llm_template_arm": "同一模板空间、LLM 选择；与 random_arm 构成配对对照（回答：LLM 选得比随机好吗）",
+      "llm_free_arm": "轴锁内任意合法代码（free- 前缀 + non_expressibility 字段）；不进两臂对照，单列全量报告（回答：LLM 能否超出预设空间）"
+    },
+    "equal_rules": "三类别共用同一轴锁/冒烟闸门/筛选线/3-seed 确认/guardrail/隐藏认证，无任何特权"
+  }
 }
