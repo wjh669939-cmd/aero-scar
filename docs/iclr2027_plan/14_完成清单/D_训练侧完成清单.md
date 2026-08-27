@@ -21,11 +21,11 @@
 
 | 项 | 内容 | 依赖 | 时点 |
 |---|---|---|---|
-| 🔶 D1 方差报告 | **只差 seed 2027 一跑（~2.7h）**：42✅/43✅/2027⬜ 三 seed 出"效应量 vs 噪声"报告（配对口径）；seeds v1.1 修订随站会追认 | seeds v1.1 | 8/27 |
-| ⬜ 抽薄改造执行 | trial_features.py / trial_objective.py 拆分（A 出方案）；抽薄后 seed43 复跑一致性验证 | A 方案 | G-8，0.5 天 |
-| ⬜ G1 接线联调 | 配合 A：CLH 子进程调用 pipeline 的 smoke（--pretrain-epochs 1 模板已备） | G-8 | G-7 |
-| ⬜ D3 收尾 | parent 5 seed（差 3407/5519）+ Persistence/逻辑回归/多数类参照入 C1 evaluator 同一口径 | D1 后 | 8/31 前 |
-| ⬜ D5 discovery 值守 | 排队/失败重跑/资源记账（GPU 与 discovery 共享 3090 的排期要在站会定） | discovery 开跑 | 9/1– |
+| ✅ D1 方差报告 | 8/27 三 seed 报告交付，decision_policy v1.1 据此标定 | — | 已闭 |
+| ✅ 抽薄改造执行 | G-8 8/27 验收：seed43 复跑 bit 级一致 | — | 已闭 |
+| ✅ G1 接线联调 | G-7 真机 smoke + G-10 双腿 completed | — | 已闭 |
+| ⬜ D3 收尾 | parent 5 seed（差 3407/5519，**8/28 凌晨 0:30 起夜间档，batch02 结束后接跑**）+ Persistence/逻辑回归/多数类参照入 C1 evaluator 同一口径 | D1 后 | 8/31 前 |
+| ⬜ D5 discovery 值守 | 8/28 起白天档值守：批次监护/失败重跑/资源记账（值守说明见 23 文档） | discovery 开跑 | 8/28– |
 | ⬜ D6 候选确认 | 各臂 top 候选 5 seed 配对确认 | discovery | 9/9–9/10 |
 
 ## 待排查（不阻塞，但进论文前必须有结论）

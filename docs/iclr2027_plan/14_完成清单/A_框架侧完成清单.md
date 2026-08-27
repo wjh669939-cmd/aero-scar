@@ -31,12 +31,23 @@
 | G-9 部署清单 | 传输物/独立 venv/验收七步/红线（EVALUATION 不进 D 机、GPU 分时建议） | `16_部署清单_D机3090.md` |
 | 单测 | 48 项全绿（28→48） | `tools/tests/` |
 
+## 8/27 凌晨部署完成 ✅
+
+| 项 | 内容 | 结果 |
+|---|---|---|
+| 部署执行 | 4.3M 部署包（CLH+tools+合同区+计划文档+交接文档+C1 评测器+两篇论文 PDF）scp 到 D 机，SHA-256 两端一致；数据符号链接挂载 release_v1 | `/root/autodl-tmp/clh_deploy/` |
+| D 机测试 | contract_tools 48 项 + CLH 23 项（含真实数据 4 项，0 跳过）全绿 | — |
+| 部署中发现并修复的回归 | ① `offline.py` 轴识别正则/preset 映射漏 objective 轴（G3 改配置时遗漏，本地无数据测不出）；② `test_aerowf.py` 断言仍按旧 4 轴配置写 | 修复已同步本机与 D 机 |
+| LLM API | `.env`（CLH_API_KEY，600 权限）配到 CLH 目录；DeepSeek 烟测通过（deepseek-v4-flash） | — |
+| G-7 真机验收 | 执行器驱动真实 full_pipeline（seed 1001，1 epoch）：**success，六条件全过，693.8s** | `results/harness/trial_20260827_003243_seed1001_c71c23` |
+| evaluator fail-safe | D 机上无 C 私有配置时正确拒评（status=failed, not_evaluated） | 待 C 部署私有配置转绿 |
+
 ## 剩余（依赖外部）
 
 | 项 | 内容 | 依赖 | 预计 |
 |---|---|---|---|
-| ⬜ G-7 真机联调 | 执行器在 D 机指真实 pipeline 跑 smoke（seed 1001，1 epoch） | D 机器访问 + G-8 抽薄 | 半天 |
-| ⬜ 部署执行 | 按 16 文档打包传输 + 验收七步 | D 机器访问、C 私有配置 | 0.5 天 |
-| ⬜ decision_policy 数值标定 | 用 D1 三 seed 方差报告填阈值，与 C、导师 8/31 前冻结 | G-11（seed 2027） | 半天 |
-| ⬜ 随机臂演练 | 2 个 trial 全链路，产物过 schema | 部署完成 | 0.5 天 |
-| ⬜ LLM API 打通 | DeepSeek key 配到 D 机器，跑一次 LLM 臂冒烟 | 部署 + **key（需用户提供）** | 半小时 |
+| ✅ G-10 收尾 | 8/27 双腿 completed，全网格落盘，两缺口关闭 | — | 已闭 |
+| ✅ decision_policy 数值标定 | v1.1 已标定并随 8/27 决议冻结（imputation 定义提案待 C 加映射键） | — | 已闭 |
+| ✅ 随机臂演练 | G-13 两趟全链路通过（rand-rep-000 / rand-obj-000） | — | 已闭 |
+| ✅ LLM 臂冒烟→正式开跑 | discovery 8/27 16:23 启动；batch01 两败（代码 bug）→ 补 G-15 冒烟闸门；batch02 在跑 | — | 已闭 |
+| 🔶 迭代闭环补齐 | evidence_builder（机器证据表）✅、裁决规则 v1 ✅、父子链 ✅；自由提案方案（22 文档）待拍板落地 | trial 3 结果 | 8/28 前 |

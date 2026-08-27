@@ -21,10 +21,10 @@
 
 | 项 | 内容 | 依赖 | 时点 |
 |---|---|---|---|
-| ⬜ 私有配置部署 | val 真值 + 私有配置装到 discovery 机器（D 的 3090）的 evaluator 专属目录；给 A 追加禁访 token | 运行时落定 | G-9 |
-| ⬜ 真实联调 | D 的真 checkpoint predictions → 子进程 → 全网格落盘（唯一没走过的链路） | G-7/G-9 | G-10 |
-| ⬜ `test_lock_state.json` 落盘 | 按 07 交付锁状态文件到 00_contract | — | 8/28 前 |
-| ⬜ C3 接受规则冻结 | 与 A/导师用 D1 三 seed 方差报告标定 decision_policy 数值 | G-11 | 8/31 前 |
+| ✅ 私有配置部署 | 8/27 完成：私有配置 + evaluator.env 部署 D 机，golden/test 自检通过，`c_evaluator_private` 入禁访 token | 运行时落定 | G-9 |
+| ✅ 真实联调 | 8/27 完成：classification/forecast 双腿 completed，manifest 哈希对账一致 | G-7/G-9 | G-10 |
+| ✅ `test_lock_state.json` 落盘 | 8/27 入库 00_contract/，SHA `50f27fcb…` 核验一致；`event_slices` token 已补入 axis_lock | — | 8/28 前 |
+| ✅ C3 接受规则冻结 | 8/27 决议：decision_policy v1.1 按三 seed 标定数值冻结（18 文档 §四）；imputation_grid_mean = `overall.imputation.mse`，请 C 在 decision_policy_metrics 加映射键 | G-11 | 8/31 前 |
 | ⬜ 插补 golden 补充说明 | `pred` 形状 [sample,runway_slot,scenario,minute,channel] 与 scenario 固定顺序写进 golden README（A 反馈：最易做错的接口点） | — | 顺手 |
 | ⬜ C5 一次性认证 | 9/11–9/12，候选冻结后执行一次，即刻重锁 | 候选冻结 | 9/11 |
 

@@ -1,0 +1,1 @@
+{"trial_id": "llm-rep-002", "arm": "llm", "seed": 42, "task": "classification", "checkpoint_digest": "classification_scratch"}

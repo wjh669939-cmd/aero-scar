@@ -1,0 +1,28 @@
+{
+  "trial_id": "llm-obj-003",
+  "arm": "llm",
+  "axis": "objective_tier1",
+  "tier": 1,
+  "parent_trial": "parent-seed42-formal",
+  "action_id": "O1-horizon-weighted-mse",
+  "is_free_proposal": false,
+  "hypothesis": "Reallocating forecast loss weight toward the T+8 horizon will reduce the monotonic long-horizon error growth by forcing the model to spend more capacity on the hardest, most distant predictions.",
+  "evidence_anchor": "Validation shows RMSE monotonically worsens with horizon: T+1 0.0444, T+4 0.0489, T+8 0.0511 (seed43 scratch), indicating the shared MSE under-weights the long horizon relative to its difficulty.",
+  "target_slices": [
+    "forecast_by_weighted_horizon",
+    "T+8_rmse"
+  ],
+  "expected_effect": "T+8 RMSE decreases by at least 0.002 (e.g., from 0.0511 toward 0.048), while T+1/T+4 RMSE may increase slightly but overall macro RMSE should not degrade by more than 0.001.",
+  "falsification": "If the T+8 RMSE does not improve by >=0.002 compared to the baseline (or if macro RMSE worsens by >0.001) across the three seeds, the hypothesis is refuted.",
+  "editable_paths": [
+    "aerowf_downstream_v2/src/trial_objective.py"
+  ],
+  "patch_plan": "Modify forecast_loss to accept a horizon index or horizon weight tensor, and apply weights [1,1,3] to the per-horizon MSE terms before summing. The weights will be normalized so that the total weight equals the number of horizons. The change will be implemented inside the existing loss function without altering its signature or the caller's interface.",
+  "budget": {
+    "gpu_hours_cap": 1.0,
+    "seeds": [
+      42
+    ]
+  },
+  "created_at_utc": "2026-08-27T12:40:12Z"
+}
