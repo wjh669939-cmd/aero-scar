@@ -1,0 +1,28 @@
+{
+  "trial_id": "llm-rep-000",
+  "arm": "llm",
+  "axis": "representation",
+  "tier": 1,
+  "parent_trial": "parent-seed42-formal",
+  "action_id": "R5-wind-cyclic-encoding",
+  "is_free_proposal": false,
+  "hypothesis": "Decoupling wind speed from direction via cyclic sin/cos encoding will improve low-wind directional representation, reducing T+1 wind errors and boundary overshoots.",
+  "evidence_anchor": "Failure slice (e): low-wind direction is masked by magnitude in (wind_x, wind_y) normalized components; also ZSSS T+1 wind_x regression head micro-overflow (>1) indicates poor boundary fitting at low wind speeds.",
+  "target_slices": [
+    "low_wind_slice",
+    "forecast_T+1"
+  ],
+  "expected_effect": "Reduce T+1 RMSE by ~0.002-0.005 and eliminate >1 wind_x predictions on low-wind slices.",
+  "falsification": "If T+1 RMSE on low_wind_slice does not improve by at least 0.001 (or any >1 wind_x prediction remains) across all three seeds, the trial is refuted.",
+  "editable_paths": [
+    "aerowf_downstream_v2/src/trial_features.py"
+  ],
+  "patch_plan": "In build_forecast_inputs, replace or augment the normalized (wind_x, wind_y) features with sin/cos of wind direction (from original u/v) and a separate wind speed feature. Keep original components optionally but ensure decoupling. For variant 'sincos_plus_speed_decouple', also add wind speed as an explicit channel. Update AllowedContextEncoder to handle the new feature dimensions without changing signatures.",
+  "budget": {
+    "gpu_hours_cap": 1.0,
+    "seeds": [
+      42
+    ]
+  },
+  "created_at_utc": "2026-08-27T08:23:24Z"
+}

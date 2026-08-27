@@ -1,0 +1,102 @@
+{
+  "suite": "C1_v1_0_1_freeze_boundary_and_real_val_tests",
+  "status": "passed",
+  "data_scope": "模型组交付的完整 val；未读取认证数据",
+  "cases": [
+    {
+      "case": "真实_val_分类与退化规则",
+      "expected": "completed",
+      "actual": "completed",
+      "passed": true
+    },
+    {
+      "case": "虚拟跑道槽位越界跳过与真实_val_预测网格",
+      "expected": "completed，36 endpoint，RMSE>MAE",
+      "actual": "completed",
+      "passed": true
+    },
+    {
+      "case": "真实_val_固定mask插补",
+      "expected": "completed",
+      "actual": "completed",
+      "passed": true
+    },
+    {
+      "case": "NaN输入",
+      "expected": "invalid",
+      "actual": "invalid",
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "Inf输入",
+      "expected": "invalid",
+      "actual": "invalid",
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "错误形状",
+      "expected": "invalid",
+      "actual": "invalid",
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "ID乱序",
+      "expected": "completed",
+      "actual": "completed",
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "零支持仅假正标识",
+      "expected": "completed",
+      "actual": "completed",
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "case": "ID缺失",
+      "expected": "invalid",
+      "actual": "invalid",
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "ID重复",
+      "expected": "invalid",
+      "actual": "invalid",
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "未知ID",
+      "expected": "invalid",
+      "actual": "invalid",
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "真实计分跑道越界值",
+      "expected": "invalid",
+      "actual": "invalid",
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "空提交",
+      "expected": "invalid",
+      "actual": "invalid",
+      "exit_code": 2,
+      "passed": true
+    },
+    {
+      "case": "固定mask哈希不匹配",
+      "expected": "failed",
+      "actual": "failed",
+      "exit_code": 3,
+      "passed": true
+    }
+  ]
+}

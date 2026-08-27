@@ -1,0 +1,24 @@
+{
+  "evaluator_version": "1.0.2",
+  "metric_definition_id": "AeroWF_C1_metrics_v1_2_contract_v2_normalized",
+  "frozen_at_utc": "2026-08-27T07:42:31Z",
+  "task_contract_version": "2.0",
+  "task_contract_sha256": "2e55c519acc44075707157813cd7a1199d6e595317c9a730b895296c80385be8",
+  "data_release": "AeroWF_v1",
+  "metric_scale": "normalized_[0,1]",
+  "forecast_protocol": "paper_aligned_wind_forecast",
+  "decision_policy_metric_bindings": {
+    "forecast": {"RMSE_macro_norm": "overall.forecast.rmse", "MAE_macro_norm": "overall.forecast.mae"},
+    "classification": {"classification_macro_f1": "overall.classification.macro_f1", "classification_csi_macro": "overall.classification.csi_macro", "hazard_class_f1": "overall.classification.f1_class_hazard"},
+    "imputation": {}
+  },
+  "split": "val",
+  "airports": ["ZBAA", "ZSPD", "ZSSS"],
+  "forecast": {"horizons": {"T+1": 15, "T+4": 60, "T+8": 120}, "partner_internal_index": 95, "components": ["wind_x", "wind_y"], "valid_range": [0.0, 1.0], "value_range_scope": "仅真实且实际计分的位置：预测为 runway_mask=True 且目标伙伴存在；插补为固定 mask 与 runway_mask 的交集。虚拟跑道槽位及其他不计分位置跳过。", "out_of_range_tolerance": {"allowed_range": [-0.1, 1.1], "max_fraction_scoring_positions": 0.0001, "action": "仅当每个任务的全部真实计分位置中，所有超出 [0,1] 的预测均落在 allowed_range 且其数量不超过计分位置的 0.01% 时，保留原值并继续计分；否则 invalid。绝不 clip、截断或改写预测值；anomaly_counts.out_of_range 始终如实记录。"}},
+  "classification": {"classes": {"GOOD": 0, "PRECIP": 1, "CLASS_HAZARD": 2}, "ignore_index": -100},
+  "imputation": {"scenarios": ["random_25", "random_50", "random_75", "feature"], "prediction_shape": "[sample, runway_slot, scenario, minute, channel]", "mask_seed": 20260823, "mask_manifest_sha256": "e4e54e1ebc612d796a8ec557107c97775d8fd9c5d86b6c0ba734c511e381159e"},
+  "aggregation": "机场内 micro；每一类同名 endpoint 跨机场、跨度和分量等权平均；退化或 null endpoint 不纳入均值但必须计数",
+  "bootstrap": {"block": "UTC 日期块", "n_replicates": 2000, "seed": 20260823, "ci_level": 0.95},
+  "degeneracy_rule": "分类 event_rate 为 0 或 1 的类标记 degenerate 并从该机场网格均值排除；预测无有效跑道或配对目标时同样标记。",
+  "clh_interface": "python -m aerowf_evaluator --predictions predictions.npz --trial-meta trial_meta.json --split val --out-dir out；不接受数据路径参数。"
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "state": "LOCKED",
+  "locked_since_utc": "2026-08-25T03:30:00Z",
+  "scope": "AeroWF v1 certification data：temporal、spatial 与 event 三个认证环境；由 C 独立保管。",
+  "forbidden_path_tokens": [
+    "sealed",
+    "pretrain/test",
+    "event_slices"
+  ],
+  "unlock_conditions": "仅在 05_certification 阶段（2026-09-11 至 2026-09-12），且 A 提交的候选冻结记录（commit、config、seed、checkpoint digest）经 C 核验完整后，方可由 C 解锁一次性认证。认证完成后立即重新锁定；任何复测请求均须书面记录。",
+  "custodian_maintenance_ops": [
+    "custodian_verify_package",
+    "custodian_gen_masks",
+    "custodian_gen_event_slices"
+  ],
+  "redaction_note": "本合同版不含认证数据的物理路径、样本清单、哈希或访问记录；这些信息仅保留在 C 的本地封存环境。"
+}

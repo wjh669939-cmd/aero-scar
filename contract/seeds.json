@@ -1,0 +1,24 @@
+{
+  "schema_version": "aerowf_v1.seeds.v1_1",
+  "status": "FROZEN",
+  "generated_at_utc": "2026-08-24T17:20:00Z",
+  "amended_at_utc": "2026-08-26T16:10:00Z",
+  "screening_seeds": [42],
+  "confirmation_seeds": [42, 43, 2027],
+  "parent_and_final_seeds": [42, 43, 2027, 3407, 5519],
+  "amendment_log": [
+    {
+      "version": "v1.1",
+      "date": "2026-08-26",
+      "change": "43 纳入清单（置换原 confirmation 中的 3407 位次；parent/final 以 43 置换 7919）",
+      "reason": "D 在冻结数据上已完成 seed 42 与 43 两次全审计通过的 full pipeline（各约 2.7 GPU 时）；43 系 D 未核对冻结名单所致，属程序瑕疵而非科学问题。此刻无任何候选、test 未触碰，纳入 43 无选择偏倚风险，弃用则浪费一次合规运行",
+      "approval": "A 提议，8/27 站会追认；若导师否决则 43 结果降级为参考、补跑原名单"
+    }
+  ],
+  "rules": [
+    "筛选期每 trial 单 seed=42；晋级候选先 3 seed 确认，冻结前 5 seed",
+    "parent 与最终确认必须使用全部 5 个 seed",
+    "所有比较使用同 seed 配对差值，禁止跨 seed 混合比较",
+    "seed 清单冻结，新增 seed 须书面理由并全体候选同步补跑（本次 v1.1 修订即援引此条）"
+  ]
+}

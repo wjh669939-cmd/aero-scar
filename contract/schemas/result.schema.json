@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aerowf_v1.result.v1",
+  "title": "AeroWF-v1 Trial Result Record",
+  "type": "object",
+  "required": [
+    "trial_id", "attempt_id", "status", "evaluation_manifest_digest",
+    "resource_usage", "created_at_utc"
+  ],
+  "properties": {
+    "trial_id": {"type": "string"},
+    "attempt_id": {"type": "integer", "minimum": 1},
+    "status": {"enum": ["completed", "invalid", "failed"]},
+    "status_reason": {"type": "string"},
+    "metrics_by_endpoint": {
+      "type": "object",
+      "description": "endpoint 网格聚合指标，completed 时必填；仅聚合值，不含逐样本分数"
+    },
+    "paired_delta_vs_parent": {
+      "type": "object",
+      "description": "同 seed 配对差值（按 endpoint），confirmation 阶段必填"
+    },
+    "guardrail_check": {
+      "type": "object",
+      "properties": {
+        "passed": {"type": "boolean"},
+        "violations": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "hypothesis_verdict": {
+      "enum": ["supported", "refuted", "inconclusive", "not_evaluated"],
+      "description": "对照 trial 登记的 falsification 条件判定，由 DecisionPolicy 自动产出而非 agent 自报"
+    },
+    "artifact_digests": {
+      "type": "object",
+      "properties": {
+        "checkpoint": {"type": "string"},
+        "predictions": {"type": "string"},
+        "training_log": {"type": "string"}
+      }
+    },
+    "resource_usage": {
+      "type": "object",
+      "required": ["gpu_hours", "gpu_model"],
+      "properties": {
+        "gpu_hours": {"type": "number"},
+        "gpu_model": {"type": "string"},
+        "peak_vram_gb": {"type": "number"},
+        "wall_clock_sec": {"type": "number"}
+      }
+    },
+    "execution_deviations": {"type": "array", "items": {"type": "string"}},
+    "created_at_utc": {"type": "string", "format": "date-time"}
+  }
+}

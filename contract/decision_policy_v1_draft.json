@@ -1,0 +1,76 @@
+{
+  "schema_version": "aerowf_v1.decision_policy.v1_1",
+  "status": "CALIBRATED_PENDING_FREEZE_SIGNOFF",
+  "generated_at_utc": "2026-08-24T17:20:00Z",
+  "calibrated_at_utc": "2026-08-27T02:10:00Z",
+  "calibration_source": "D1 三 seed 配对方差报告（seed 42/43/2027，Contract V2，validation only）",
+  "freeze_deadline": "2026-08-31",
+  "freeze_owner": "A + C + 导师",
+  "note": "数值已按 D1 噪声水平标定，待 C 与导师签字后冻结；冻结后不得因候选结果调整",
+  "noise_floor_reference": {
+    "forecast_scratch_rmse_cross_seed_sd": 0.00023,
+    "forecast_paired_delta_sd_observed": 0.0011,
+    "cls_scratch_macro_f1_cross_seed_sd": 0.0117,
+    "cls_paired_delta_f1_sd_observed": 0.035,
+    "cls_hazard_f1_paired_sd_observed": 0.0954,
+    "cls_hazard_sign_consistency": "否（+0.1555/-0.0238/+0.0096），hazard 单独不可作接受依据",
+    "pretrain_val_loss_cross_seed_sd": 5.1e-05
+  },
+  "primary_endpoint": {
+    "metric": "RMSE_macro_norm（预测网格 {15/60/120min} × {wind_x,wind_y} × 3 机场宏平均，归一化尺度）",
+    "definition": "同 seed 配对差值（candidate − parent），负值为改善",
+    "screening_pass": "单 seed 改善 >= 0.0005（约 2 倍 scratch 跨 seed SD）且无 guardrail 硬违反",
+    "confirmation_pass": "3 seed 配对均值改善 >= 0.0010（约 4 倍噪声底，相对 ~2%）且 3/3 符号一致 且 UTC 日期块 paired bootstrap 95% CI 不含零",
+    "supporting_metric": "MAE_macro_norm 配对均值不得恶化 > 0.0005",
+    "comparison": "paired_by_seed, block_bootstrap_ci_must_exclude_zero"
+  },
+  "guardrails": [
+    {
+      "metric": "classification_macro_f1 (3类, 有信号机场)",
+      "rule": "3 seed 配对均值恶化 <= 0.02（约 1.7 倍跨 seed SD 0.0117）",
+      "hard": true
+    },
+    {
+      "metric": "classification_csi_macro",
+      "rule": "3 seed 配对均值恶化 <= 0.05（约 1.2 倍配对 SD 0.0403）",
+      "hard": true
+    },
+    {
+      "metric": "hazard_class_f1",
+      "rule": "3 seed 配对均值恶化 <= 0.10（约 1 倍配对 SD 0.0954）；单 seed 波动不触发",
+      "hard": true,
+      "note": "统计效力受限：val 信号仅 ZBAA，hazard support=94，D1 显示符号不一致（SNR 0.49）——仅防灾难性回退，不作为选优依据"
+    },
+    {
+      "metric": "imputation_grid_mean（固定 mask 四场景）",
+      "rule": "配对相对恶化 <= 5%（占位，首批含插补输出的 trial 后按同法标定并留痕）",
+      "hard": false,
+      "pending_calibration": true,
+      "proposed_definition_20260827": "imputation_grid_mean := C1 metrics.json 的 overall.imputation.mse（固定 mask 网格 24 endpoint 的规范聚合，归一化尺度，排除 degenerate）；由 C 在 decision_policy_metrics 中加映射键 imputation_grid_mean → overall.imputation.mse。定义待 G-12 站会/导师签字后生效；阈值标定仍按原计划在首批含插补输出的 trial 后进行"
+    }
+  ],
+  "candidate_lifecycle": {
+    "screening": "单 seed=42，通过 = primary screening_pass",
+    "confirmation": "3 seed {42,43,2027} 配对，通过 = confirmation_pass + 全部 hard guardrail 通过",
+    "freeze": "5 seed {42,43,2027,3407,5519} 复确认 + digest 固化，每臂 top 候选进入认证"
+  },
+  "invalid_failed_semantics": "invalid/failed 状态 trial 不计入接受/拒绝统计，GPU 时间照记账（沿用 C1 三态语义）",
+  "anti_gaming_rules": [
+    "接受规则冻结后不得因任何候选的结果修改",
+    "禁止事后更换 primary endpoint 或将 guardrail 降级",
+    "每个候选只有一次 confirmation 机会；失败不得换 seed 重试",
+    "hazard/分类指标不得用于候选排序（仅 guardrail），防止在高噪声切片上选噪声"
+  ],
+  "changelog": [
+    {
+      "version": "v1.1",
+      "date": "2026-08-27",
+      "change": "按 D1 三 seed 报告标定全部数值；primary 定为 RMSE_macro_norm（噪声底最低，SNR 最高）；分类降为 guardrail；hazard 明确不作选优依据",
+      "pending": "C 与导师 8/31 前签字冻结"
+    },
+    {
+      "date": "2026-08-27",
+      "change": "C1 v1.0.2 起 metrics.json 提供 decision_policy_metrics 直接映射（RMSE_macro_norm/MAE_macro_norm/classification_macro_f1/classification_csi_macro/hazard_class_f1），键名与本 policy 1:1 对齐，A 侧无需二次换算；imputation_grid_mean 提案定义已写入对应 guardrail，待签字"
+    }
+  ]
+}

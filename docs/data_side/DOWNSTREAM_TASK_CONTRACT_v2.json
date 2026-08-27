@@ -1,0 +1,147 @@
+{
+  "schema_version": "2.0",
+  "contract_name": "AeroWF Downstream Task Contract V2",
+  "status": "current_active",
+  "data_release": "AeroWF_v1",
+  "supersedes": {
+    "contract": "DOWNSTREAM_TASK_CONTRACT_v1",
+    "scope": "Forecast semantics superseded; Classification carried forward in substance."
+  },
+  "forecast": {
+    "primary_protocol": {
+      "id": "paper_aligned_wind_forecast",
+      "formal_baseline": true,
+      "horizons": {
+        "T+1": {
+          "minutes_after_input_end": 15,
+          "target_offset_from_window_start_min": 110,
+          "partner_window_start_offset_min": 15,
+          "partner_internal_index": 95
+        },
+        "T+4": {
+          "minutes_after_input_end": 60,
+          "target_offset_from_window_start_min": 155,
+          "partner_window_start_offset_min": 60,
+          "partner_internal_index": 95
+        },
+        "T+8": {
+          "minutes_after_input_end": 120,
+          "target_offset_from_window_start_min": 215,
+          "partner_window_start_offset_min": 120,
+          "partner_internal_index": 95
+        }
+      },
+      "targets": [
+        {
+          "target_index": 0,
+          "runway_channel": 1,
+          "name": "wind_x"
+        },
+        {
+          "target_index": 1,
+          "runway_channel": 2,
+          "name": "wind_y"
+        }
+      ],
+      "target_alignment": {
+        "timestamp_based": true,
+        "same_airport": true,
+        "same_released_task_partition": true,
+        "cross_partition": false,
+        "padded_runways_evaluated": false
+      }
+    },
+    "optional_protocol": {
+      "id": "extended_minute_multivariate_forecast",
+      "formal_baseline": false,
+      "horizon_names": [
+        "H+1m",
+        "H+4m",
+        "H+8m"
+      ],
+      "minutes_after_input_end": [
+        1,
+        4,
+        8
+      ],
+      "targets": [
+        "cloud_base",
+        "wind_x",
+        "wind_y",
+        "pressure",
+        "temperature",
+        "humidity",
+        "dewpoint"
+      ]
+    }
+  },
+  "classification": {
+    "classes": {
+      "0": "GOOD",
+      "1": "PRECIP",
+      "2": "HAZARD"
+    },
+    "ignore_index": -100,
+    "mapping_by_upstream_id": {
+      "0": null,
+      "1": null,
+      "2": 0,
+      "3": 2,
+      "4": 2,
+      "5": 2,
+      "6": 1,
+      "7": 1,
+      "8": 1,
+      "9": 1,
+      "10": 1,
+      "11": 1,
+      "12": 1,
+      "13": 1,
+      "14": 2,
+      "15": 2,
+      "16": 2,
+      "17": 2,
+      "18": 2,
+      "19": 2,
+      "20": 2
+    },
+    "forbidden_inputs": [
+      "weather_code_id",
+      "weather_label",
+      "one-hot/multi-hot target encodings",
+      "weather_code_id embeddings",
+      "direct deterministic derivatives of weather_code_id or weather_label",
+      "future information",
+      "evaluation labels/results",
+      "sample_id/source_index/split/status as predictive features"
+    ]
+  },
+  "metrics": {
+    "forecast": {
+      "primary_scale": "released_normalized_runway_scale_[0,1]",
+      "mae": "mean(abs(y_true-y_pred)) over valid sample x real-runway points",
+      "rmse": "sqrt(mean((y_true-y_pred)^2)) over valid sample x real-runway points",
+      "required_matrix": "3 horizons x 2 wind components x {MAE,RMSE}"
+    },
+    "classification": {
+      "macro_f1": "unweighted mean over evaluable classes",
+      "csi_per_class": "TP/(TP+FP+FN)",
+      "CSI": "CSI_macro",
+      "labels": [
+        0,
+        1,
+        2
+      ]
+    },
+    "zero_support": {
+      "support": "TP+FN",
+      "support_eq_0": {
+        "F1": null,
+        "CSI": null,
+        "exclude_from_macro": true,
+        "report_FP": true
+      },
+      "all_classes_zero_support": "invalid evaluation"
+    }
+  }
+}

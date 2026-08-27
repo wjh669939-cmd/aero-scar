@@ -1,0 +1,8 @@
+
+===== TRIAL 0 axis=representation 2026-08-27T08:23:20Z =====
+TRIAL_OUTCOME: {"trial_id": "llm-rep-000", "event": null, "status": "failed", "paired_delta_vs_parent": {}, "screen_pass": null}
+
+===== TRIAL 1 axis=objective_tier1 2026-08-27T09:16:32Z =====
+TRIAL_OUTCOME: {"trial_id": "llm-obj-001", "event": null, "status": "failed", "paired_delta_vs_parent": {}, "screen_pass": null}
+
+BATCH_DONE 2026-08-27T10:09:04Z

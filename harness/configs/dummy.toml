@@ -1,0 +1,30 @@
+# Dummy aerodrome-weather closed-loop profile (synthetic frames; paper protocol).
+# Offline specialist runs without an API key.
+
+profile = "dummy"
+run_root = "runs"
+
+[llm]
+provider = "offline"
+model = "deepseek-chat"
+base_url = "https://api.deepseek.com/v1"
+temperature = 0.2
+
+[research]
+budget_per_axis = 1
+axes = ["representation", "model", "physics", "data"]
+equal_budget = true
+selection_threshold = 0.005
+safety_csi_tolerance = 0.02
+
+[domain]
+name = "dummy"
+baseline = "persistence"
+pipeline_root = "examples/dummy_research/pipeline"
+source_airports = ["ZBAA", "ZSPD", "ZGGG"]
+holdout_airports = ["ZUUU"]
+
+[certification]
+splits = ["temporal", "spatial", "event"]
+freeze_top_k_per_axis = 1
+routing_threshold = 0.005

@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+*.env
+*.pth
+*.npy
+*.7z
+results/
+runs/
+c_evaluator_private/
+*.stdout
+*.stderr

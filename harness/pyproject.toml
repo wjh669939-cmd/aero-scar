@@ -1,0 +1,34 @@
+[project]
+name = "closed-loop-harness"
+version = "0.1.0"
+description = "Plugin-based Closed-loop Auto Research harness for ATC / aerodrome weather."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "openai>=1.40.0",
+    "pydantic>=2.8.0",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0.1",
+    "rich>=13.7.0",
+    "scikit-learn>=1.4.0",
+    "tomli>=2.0.1; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+clh = "clh.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/clh"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"

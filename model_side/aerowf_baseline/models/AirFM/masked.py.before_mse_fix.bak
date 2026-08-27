@@ -1,0 +1,270 @@
+"""
+Hybrid Mask Strategy for AeroWF Pre-training.
+
+Dynamically switches between random and causal masks with 50% probability:
+    masked_p = Mask_r(p) if α < 0.5 else Mask_c(p)
+
+- Random mask (α < 0.5): Simulates historical data repair scenarios
+- Causal mask (α ≥ 0.5): Forces model to predict future using only historical data
+"""
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
+
+
+# ================================================================================================
+# Hybrid Mask Generation
+# ================================================================================================
+
+def generate_hybrid_mask(batch_size, seq_len, mask_ratio=0.15, 
+                         random_strategy='block', causal_strategy='last',
+                         causal_prob=0.5):
+    """
+    Generate Hybrid Mask - dynamically switches between random and causal masks
+    
+    Hybrid strategy formula:
+        masked_p = Mask_r(p) if α < 0.5 else Mask_c(p)
+    
+    - Random mask (α < causal_prob): Simulates historical data repair scenarios
+    - Causal mask (α ≥ causal_prob): Forces model to predict future using only historical data
+    
+    Args:
+        batch_size: Batch size
+        seq_len: Sequence length
+        mask_ratio: Masking ratio
+        random_strategy: Random mask strategy
+            - 'random': Random single timestep masking (like BERT)
+            - 'block': Contiguous block masking (better for time series)
+            - 'structured': Structured masking (fixed intervals)
+        causal_strategy: Causal mask strategy
+            - 'last': Mask last mask_ratio portion of sequence (fixed future prediction)
+            - 'random_future': Randomly select start point, mask from that to end (random length prediction)
+            - 'half': Fixed mask second half (50% prediction task)
+        causal_prob: Probability of using causal mask (default 0.5)
+    
+    Returns:
+        mask: [batch_size, seq_len], 1 = masked, 0 = keep
+        is_causal: [batch_size], Boolean array, True = sample uses causal mask
+        mask_start: [batch_size], Causal mask start position (-1 for non-causal)
+    """
+    mask = torch.zeros(batch_size, seq_len)
+    is_causal = torch.zeros(batch_size, dtype=torch.bool)
+    mask_start = torch.full((batch_size,), -1, dtype=torch.long)
+    
+    for i in range(batch_size):
+        alpha = np.random.random()
+        
+        if alpha < causal_prob:
+            # ===== Causal mask: predict future using only historical data =====
+            is_causal[i] = True
+            
+            if causal_strategy == 'last':
+                # Mask last mask_ratio portion of sequence
+                num_masked = int(seq_len * mask_ratio)
+                start_idx = seq_len - num_masked
+            elif causal_strategy == 'random_future':
+                # Randomly select start point, mask from that to end
+                min_start = int(seq_len * 0.5)  # Preserve at least 50% history
+                max_start = int(seq_len * (1 - mask_ratio))  # Mask at least mask_ratio
+                start_idx = np.random.randint(min_start, max(min_start + 1, max_start + 1))
+            elif causal_strategy == 'half':
+                # Fixed mask second half
+                start_idx = seq_len // 2
+            else:
+                start_idx = seq_len - int(seq_len * mask_ratio)
+            
+            mask[i, start_idx:] = 1
+            mask_start[i] = start_idx
+            
+        else:
+            # Random mask: historical data repair
+            is_causal[i] = False
+            num_masked = int(seq_len * mask_ratio)
+            
+            if random_strategy == 'random':
+                masked_indices = np.random.choice(seq_len, num_masked, replace=False)
+                mask[i, masked_indices] = 1
+            elif random_strategy == 'block':
+                max_start = seq_len - num_masked
+                if max_start > 0:
+                    start_idx = np.random.randint(0, max_start)
+                    mask[i, start_idx:start_idx + num_masked] = 1
+                else:
+                    mask[i, :] = 1
+            elif random_strategy == 'structured':
+                step = max(1, int(1 / mask_ratio))
+                mask[i, ::step] = 1
+    
+    return mask, is_causal, mask_start
+
+
+def apply_mask(x, mask, mask_value=0.0):
+    """
+    Apply mask to time series.
+    
+    Args:
+        x: [batch, channels, time_steps]
+        mask: [batch, time_steps] or [batch*N, time_steps]
+        mask_value: Value to fill masked positions
+    
+    Returns:
+        x_masked: Masked time series
+    """
+    # If mask batch dimension doesn't match x, expand mask
+    if mask.shape[0] != x.shape[0]:
+        mask = mask.repeat_interleave(x.shape[0] // mask.shape[0], dim=0)
+
+    mask_expanded = mask.unsqueeze(1)  # [batch, 1, time_steps]
+    x_masked = x.clone()
+    x_masked = x_masked * (1 - mask_expanded) + mask_value * mask_expanded
+    return x_masked
+
+
+def masked_mse_loss(pred, target, mask, node_mask=None):
+    """
+    Compute MSE loss at masked positions (supports node mask filtering).
+    
+    Args:
+        pred: [batch, channels, time_steps] or [B*N, channels, time_steps]
+        target: [batch, channels, time_steps] or [B*N, channels, time_steps]
+        mask: [batch, time_steps] - temporal mask (1=masked, 0=kept)
+        node_mask: [batch,] - optional node mask for multi-airport data
+    
+    Returns:
+        loss: Scalar tensor
+    """
+    mask_expanded = mask.unsqueeze(1)
+    
+    if node_mask is not None:
+        node_mask_expanded = node_mask.float().view(-1, 1, 1)
+        mask_expanded = mask_expanded * node_mask_expanded
+
+    squared_diff = (pred - target) ** 2
+    masked_squared_diff = squared_diff * mask_expanded
+
+    num_masked = mask_expanded.sum()
+    if num_masked == 0:
+        return torch.tensor(0.0, device=pred.device)
+
+    loss = masked_squared_diff.sum() / num_masked
+    return loss
+
+
+# ================================================================================================
+# Reconstruction Decoder
+# ================================================================================================
+
+class ReconstructionDecoder(nn.Module):
+    """
+    Reconstruction Decoder for AeroWF.
+    
+    Reconstructs time series from fused global representation.
+    Architecture: Z → MLP expansion → reshape → transposed convolution upsampling → time series
+    """
+    def __init__(self, input_dim, emb_size, output_channels, output_len):
+        """
+        Args:
+            input_dim: Input dimension (fused representation)
+            emb_size: Intermediate embedding dimension
+            output_channels: Output channel dimension
+            output_len: Output time sequence length
+        """
+        super().__init__()
+        
+        self.input_dim = input_dim
+        self.emb_size = emb_size
+        self.output_channels = output_channels
+        self.output_len = output_len
+        
+        self.init_len = output_len // 8
+        
+        # MLP: expand from global representation to initial sequence
+        self.fc = nn.Sequential(
+            nn.Linear(input_dim, emb_size * 2),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(emb_size * 2, emb_size * self.init_len),
+            nn.GELU()
+        )
+        
+        # Transposed convolution upsampling
+        self.upsample = nn.Sequential(
+            nn.ConvTranspose1d(emb_size, emb_size, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm1d(emb_size),
+            nn.GELU(),
+            nn.ConvTranspose1d(emb_size, emb_size // 2, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm1d(emb_size // 2),
+            nn.GELU(),
+            nn.ConvTranspose1d(emb_size // 2, output_channels, kernel_size=4, stride=2, padding=1),
+        )
+        
+        # Adaptive pooling to ensure correct output length
+        self.adaptive_pool = nn.AdaptiveAvgPool1d(output_len)
+    
+    def forward(self, z):
+        """
+        Args:
+            z: [batch, input_dim] fused global representation
+        Returns:
+            out: [batch, output_channels, output_len] reconstructed time series
+        """
+        B = z.shape[0]
+        
+        # MLP expansion
+        x = self.fc(z)
+        
+        # Reshape
+        x = x.view(B, self.emb_size, self.init_len)
+        
+        # Transposed convolution upsampling
+        x = self.upsample(x)
+        
+        # Ensure correct output length
+        x = self.adaptive_pool(x)
+        
+        return x
+
+
+# ================================================================================================
+# Utility Functions
+# ================================================================================================
+
+def reconstruction_metrics(pred, target, mask=None):
+    """
+    Compute reconstruction quality metrics.
+    
+    Returns:
+        metrics: Dictionary with MSE, MAE, correlation
+    """
+    metrics = {}
+    
+    if mask is not None:
+        mask_expanded = mask.unsqueeze(1)
+        pred_masked = pred * mask_expanded
+        target_masked = target * mask_expanded
+    else:
+        pred_masked = pred
+        target_masked = target
+    
+    # MSE
+    metrics['mse'] = F.mse_loss(pred_masked, target_masked).item()
+    
+    # MAE
+    metrics['mae'] = F.l1_loss(pred_masked, target_masked).item()
+    
+    # Correlation
+    correlations = []
+    for i in range(pred.size(0)):
+        pred_flat = pred[i].flatten()
+        target_flat = target[i].flatten()
+        
+        if len(pred_flat) > 1:
+            corr = torch.corrcoef(torch.stack([pred_flat, target_flat]))[0, 1]
+            if not torch.isnan(corr):
+                correlations.append(corr.item())
+    
+    metrics['correlation'] = np.mean(correlations) if correlations else 0.0
+    
+    return metrics

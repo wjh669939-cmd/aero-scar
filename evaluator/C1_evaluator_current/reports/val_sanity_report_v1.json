@@ -1,0 +1,41 @@
+{
+  "scope": "模型组交付的完整 val；未读取认证数据",
+  "split": "val",
+  "task_contract_version": "2.0",
+  "bootstrap_block": "UTC 日期块",
+  "classification_degeneracy_rule": "某机场某类别的 event_rate 为 0 或 1 时，该类别 CSI/F1 及其参与的宏平均均标记为 degenerate，并从对应 overall 排除。",
+  "airports": {
+    "ZBAA": {
+      "n_samples": 3961,
+      "classification": {
+        "good": {"support": 3627, "event_rate": 0.9156778591264833, "degenerate": false},
+        "precip": {"support": 240, "event_rate": 0.06059075990911386, "degenerate": false},
+        "class_hazard": {"support": 94, "event_rate": 0.02373138096440293, "degenerate": false}
+      },
+      "forecast_partner_unavailable_at_tail": {"T+1": 1, "T+4": 4, "T+8": 8}
+    },
+    "ZSPD": {
+      "n_samples": 3961,
+      "classification": {
+        "good": {"support": 3961, "event_rate": 1.0, "degenerate": true},
+        "precip": {"support": 0, "event_rate": 0.0, "degenerate": true},
+        "class_hazard": {"support": 0, "event_rate": 0.0, "degenerate": true}
+      },
+      "forecast_partner_unavailable_at_tail": {"T+1": 1, "T+4": 4, "T+8": 8}
+    },
+    "ZSSS": {
+      "n_samples": 3961,
+      "classification": {
+        "good": {"support": 3961, "event_rate": 1.0, "degenerate": true},
+        "precip": {"support": 0, "event_rate": 0.0, "degenerate": true},
+        "class_hazard": {"support": 0, "event_rate": 0.0, "degenerate": true}
+      },
+      "forecast_partner_unavailable_at_tail": {"T+1": 1, "T+4": 4, "T+8": 8}
+    }
+  },
+  "pre_registered_exclusions": [
+    "ZSPD: good, precip, class_hazard 及由这些类别构成的宏平均",
+    "ZSSS: good, precip, class_hazard 及由这些类别构成的宏平均"
+  ],
+  "conclusion": "退化剔除规则已在冻结前写入 evaluator_config_v1.json，并已由真实 val 运行验证。"
+}

@@ -1,0 +1,873 @@
+"""
+Unified AeroWF Model - Modular Implementation.
+
+Architecture flow:
+    Input → Dual-stream Encoders (Temporal/Spectral) → Hierarchical Aggregator → 
+    Representation → Pre-training Tasks
+
+Module structure:
+    - encoders/transformer_encoder.py: Transformer Temporal Encoder
+    - encoders/frets_encoder.py: FreTS Spectral Encoder
+    - encoders/exogenous_encoder.py: Exogenous Variable Encoder
+    - fusion/dual_stream_fusion.py: Dual-stream Fusion
+    - HierarchicalGNN.py: Hierarchical Aggregator
+    - masked.py: Masked Reconstruction utilities
+    - physics_distance.py: Physics-based Distance Computation
+"""
+
+import logging
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from .encoders import (
+    TransformerEncoder,
+    FreTSEncoder,
+    ExogenousEncoder
+)
+from .fusion import DualStreamFusion
+from .HierarchicalGNN import SimpleHierarchicalGNN
+from .masked import (
+    generate_hybrid_mask,
+    apply_mask,
+    masked_mse_loss,
+    ReconstructionDecoder
+)
+from .physics_distance import PhysicsDistanceComputer, compute_physical_distances
+
+
+logger = logging.getLogger('__main__')
+
+
+class UnifiedSeries2Vec(nn.Module):
+    """
+    Unified AeroWF Model - Modular Implementation.
+    
+    Architecture flow:
+        Input → TransformerEncoder(Temporal) → Hierarchical Aggregator → rep_T └→
+                                                                                 |
+                                                               Representation → Tasks
+                                                                                 |
+        Input → FreTSEncoder(Spectral) → Hierarchical Aggregator → rep_F ┐→
+    
+    Exogenous variables (METAR) integration:
+        - Integrated before encoders: x_input = x + exo_embed
+        - Additive fusion with original data
+        - Categorical variables via Embedding, continuous via MLP projection
+    
+    Multi-airport support:
+        - Supports N_max dimension unified input
+        - Node mask distinguishes valid/virtual nodes
+        - Hierarchical aggregator uses masked-weighted aggregation
+    """
+    预训练任务:
+        1. pretrain: 对比学习（距离学习）
+        2. masked_recon: 掩码重建
+        3. unified_pretrain: 统一预训练（掩码重建 + 对比学习）
+    """
+    
+    def __init__(self, config, num_classes=None):
+        super().__init__()
+        
+        # ========== 基础配置 ==========
+        self.config = config
+        data_shape = config['Data_shape']
+        
+        # 判断数据格式
+        # 多节点格式: (batch, num_nodes, time_steps, channels)
+        # 单节点格式: (batch, channels, time_steps)
+        self.is_multi_node = len(data_shape) == 4
+        
+        # 最大节点数（用于多机场统一训练）
+        self.N_max = config.get('N_max', 4)
+        
+        if self.is_multi_node:
+            _, self.num_nodes, self.seq_len, self.input_channels = data_shape
+            # 确保 num_nodes 不超过 N_max
+            self.num_nodes = min(self.num_nodes, self.N_max)
+        else:
+            self.num_nodes = config.get('num_nodes', 3)
+            self.input_channels = data_shape[1]
+            self.seq_len = data_shape[2]
+        
+        # 模型超参数
+        self.emb_size = config['emb_size']
+        self.rep_size = config['rep_size']
+        self.num_heads = config['num_heads']
+        self.dim_ff = config['dim_ff']
+        self.dropout = config.get('dropout', 0.1)
+        self.num_classes = num_classes or config.get('num_labels', 2)
+        
+        # ========== 消融实验配置 ==========
+        # use_frequency: 是否使用频域编码器 (Exp A: w/o Frequency)
+        self.use_frequency = config.get('use_frequency', True)
+        # use_hierarchy: 是否使用层次编码器 (Exp B: w/o Hierarchy)
+        self.use_hierarchy = config.get('use_hierarchy', True)
+        
+        # ========== 外生变量配置 (METAR) ==========
+        self.exo_config = config.get('exo_config', None)
+        self.use_exogenous = self.exo_config is not None
+        
+        # ========== 阶段1: 双流编码器 ==========
+        encoder_num_heads = config.get('encoder_num_heads', 4)
+        encoder_num_layers = config.get('encoder_num_layers', 2)
+        encoder_dim_ff = config.get('encoder_dim_ff', self.emb_size * 4)
+        frets_num_layers = config.get('frets_num_layers', 2)
+        
+        # 时域编码器: Transformer (始终启用)
+        self.encoder_T = TransformerEncoder(
+            channel_size=self.input_channels,
+            emb_size=self.emb_size,
+            rep_size=self.rep_size,
+            num_heads=encoder_num_heads,
+            num_layers=encoder_num_layers,
+            dim_ff=encoder_dim_ff,
+            dropout=self.dropout,
+            kernel_size=8
+        )
+        
+        # 频域编码器: FreTS (可选，用于 Exp A)
+        if self.use_frequency:
+            self.encoder_F = FreTSEncoder(
+                channel_size=self.input_channels,
+                emb_size=self.emb_size,
+                rep_size=self.rep_size,
+                seq_len=self.seq_len,  # 传入固定序列长度
+                num_layers=frets_num_layers,
+                dropout=self.dropout,
+                kernel_size=8
+            )
+        else:
+            self.encoder_F = None  # 消融实验：禁用频域流
+        
+        # 全局平均池化
+        self.gap_T = nn.AdaptiveAvgPool1d(1)
+        if self.use_frequency:
+            self.gap_F = nn.AdaptiveAvgPool1d(1)
+        else:
+            self.gap_F = None
+        
+        # ========== 外生变量编码器 (METAR) ==========
+        if self.use_exogenous:
+            self.exo_encoder = ExogenousEncoder(
+                exo_config=self.exo_config,
+                input_channels=self.input_channels,
+                seq_len=self.seq_len,
+                dropout=self.dropout
+            )
+        
+        # ========== 阶段2: 层次编码器 (可选，用于 Exp B) ==========
+        use_simple_gnn = config.get('use_simple_gnn', True)
+        gnn_hidden = config.get('gnn_hidden', self.rep_size * 2)
+        gnn_layers = config.get('gnn_layers', 2)
+        
+        if self.use_hierarchy:
+            if use_simple_gnn:
+                self.hierarchical = SimpleHierarchicalGNN(
+                    self.rep_size, hidden_dim=gnn_hidden, dropout=self.dropout,
+                    N_max=self.N_max
+                )
+            else:
+                from .HierarchicalGNN import HierarchicalGNN
+                self.hierarchical = HierarchicalGNN(
+                    in_channels=self.rep_size,
+                    hidden_channels=gnn_hidden,
+                    out_channels=self.rep_size,
+                    num_edge_types=4,
+                    N_max=self.N_max,  # 【修复问题3】：使用 N_max 替代固定 num_nodes
+                    num_layers=gnn_layers,
+                    dropout=self.dropout
+                )
+        else:
+            # 消融实验：禁用层级结构，使用 Identity + 维度适配
+            self.hierarchical = nn.Identity()
+            # 添加线性层确保维度匹配（如果 GNN 有维度变换）
+            self.hierarchical_dim_adapter = nn.Identity()
+        
+        # ========== 阶段3: Attention层 ==========
+        self.LayerNorm1 = nn.LayerNorm(self.rep_size, eps=1e-5)
+        self.LayerNorm2 = nn.LayerNorm(self.rep_size, eps=1e-5)
+        self.attention = nn.MultiheadAttention(
+            self.rep_size, self.num_heads, dropout=self.dropout
+        )
+        self.ffn = nn.Sequential(
+            nn.Linear(self.rep_size, self.dim_ff),
+            nn.ReLU(),
+            nn.Dropout(self.dropout),
+            nn.Linear(self.dim_ff, self.rep_size),
+            nn.Dropout(self.dropout)
+        )
+        
+        # ========== 双流融合模块 ==========
+        self.fusion_type = config.get('fusion_type', 'concat')
+        self.fusion = DualStreamFusion(
+            rep_size=self.rep_size,
+            fusion_type=self.fusion_type,
+            dropout=self.dropout,
+            use_frequency=self.use_frequency  # 传入是否使用频域流，影响 output_dim
+        )
+        
+        # ========== 掩码重建解码器 ==========
+        self.use_masked_recon = config.get('use_masked_recon', True)
+        if self.use_masked_recon:
+            self.mask_ratio = config.get('mask_ratio', 0.15)
+            self.random_mask_strategy = config.get('random_mask_strategy', 'block')
+            self.causal_mask_strategy = config.get('causal_mask_strategy', 'last')
+            self.causal_prob = config.get('causal_prob', 0.5)
+            
+            self.decoder = ReconstructionDecoder(
+                input_dim=self.fusion.output_dim,
+                emb_size=self.emb_size,
+                output_channels=self.input_channels,
+                output_len=self.seq_len
+            )
+        
+        # ========== 对比学习投影头 (修复病灶二：容量坍缩) ==========
+        # 投影头将主特征映射到对比学习专用的度量空间
+        # 这样对比 Loss 只修改投影头参数，保护主特征空间不被压缩
+        # 结构: Linear -> BN -> ReLU -> Linear (参考 SimCLR, MoCo v2)
+        proj_hidden_dim = config.get('proj_hidden_dim', self.rep_size * 2)
+        proj_output_dim = config.get('proj_output_dim', self.rep_size)
+        
+        self.proj_head_T = nn.Sequential(
+            nn.Linear(self.rep_size, proj_hidden_dim),
+            nn.BatchNorm1d(proj_hidden_dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(proj_hidden_dim, proj_output_dim)
+        )
+        
+        self.proj_head_F = nn.Sequential(
+            nn.Linear(self.rep_size, proj_hidden_dim),
+            nn.BatchNorm1d(proj_hidden_dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(proj_hidden_dim, proj_output_dim)
+        )
+        
+        # ========== 分类器 ==========
+        classifier_input_dim = self.fusion.output_dim
+        self.classifier = nn.Linear(classifier_input_dim, self.num_classes)
+        
+        # ========== 物理距离计算器（修复病灶三：EMA 归一化）==========
+        # 作为子模块注册，EMA 统计量会随模型保存/加载
+        ema_momentum = config.get('ema_momentum', 0.99)
+        warmup_batches = config.get('warmup_batches', 10)
+        self._physics_computer = PhysicsDistanceComputer(
+            ema_momentum=ema_momentum,
+            warmup_batches=warmup_batches
+        )
+        
+        self.task_type = config.get('task_type', 'pretrain')
+    
+    # ===================== 核心编码流程 =====================
+    
+    def encode(self, x, return_intermediate=False, exo_categorical=None, exo_continuous=None,
+               node_mask=None):
+        """
+        完整编码流程: 外生变量融合 → 双流编码器 → 层次编码器 → 表示
+        
+        Args:
+            x: 输入数据 (B, N, T, C) 或 (B, C, T)
+            return_intermediate: 是否返回中间结果
+            exo_categorical: 离散外生变量字典
+            exo_continuous: 连续外生变量字典
+            node_mask: 节点掩码 (B, N) 布尔张量，可选
+                True 表示该节点是有效的真实跑道
+                False 表示该节点是填充的虚拟跑道
+        
+        Returns:
+            rep_T: (batch, rep_size) 时域最终表示
+            rep_F: (batch, rep_size) 频域最终表示
+        """
+        intermediate = {}
+        
+        if self.is_multi_node or (len(x.shape) == 4):
+            B, N, T, C = x.shape
+            # 截断或使用实际节点数
+            N = min(N, self.N_max)
+            x_flat = x[:, :N, :, :].view(B * N, T, C).permute(0, 2, 1)
+        else:
+            B = x.shape[0]
+            N = 1
+            x_flat = x
+        
+        # 外生变量融合
+        exo_embed = None
+        if self.use_exogenous and (exo_categorical is not None or exo_continuous is not None):
+            exo_embed = self.exo_encoder(exo_categorical, exo_continuous)
+            intermediate['exo_embed'] = exo_embed
+            
+            if N > 1:
+                exo_embed_expanded = exo_embed.unsqueeze(1).expand(-1, N, -1, -1)
+                exo_embed_flat = exo_embed_expanded.reshape(B * N, C, T)
+            else:
+                exo_embed_flat = exo_embed
+            
+            x_input = x_flat + exo_embed_flat
+            intermediate['x_with_exo'] = x_input
+        else:
+            x_input = x_flat
+        
+        # 双流编码器
+        h_T = self.encoder_T(x_input)
+        z_T = self.gap_T(h_T).squeeze(-1)
+        
+        # 频域编码器（可选，用于 Exp A）
+        if self.use_frequency and self.encoder_F is not None:
+            h_F = self.encoder_F(x_input)
+            z_F = self.gap_F(h_F).squeeze(-1)
+        else:
+            z_F = None  # 消融实验：禁用频域流
+        
+        intermediate['z_T_before_hier'] = z_T
+        intermediate['z_F_before_hier'] = z_F
+        
+        # 层次编码器（可选，用于 Exp B）
+        if N > 1 or self.is_multi_node:
+            z_T_nodes = z_T.view(B, N, self.rep_size)
+            if z_F is not None:
+                z_F_nodes = z_F.view(B, N, self.rep_size)
+            else:
+                z_F_nodes = None
+        else:
+            z_T_nodes = z_T.unsqueeze(1).expand(-1, self.num_nodes, -1).contiguous()
+            z_T_nodes = z_T_nodes.view(B, self.num_nodes, self.rep_size)
+            if z_F is not None:
+                z_F_nodes = z_F.unsqueeze(1).expand(-1, self.num_nodes, -1).contiguous()
+                z_F_nodes = z_F_nodes.view(B, self.num_nodes, self.rep_size)
+            else:
+                z_F_nodes = None
+        
+        # 如果提供了节点掩码，截断到当前节点数
+        if node_mask is not None:
+            node_mask = node_mask[:, :N]
+        
+        # 调用层次编码器（带掩码）
+        if self.use_hierarchy:
+            z_T_enhanced, global_T = self.hierarchical(z_T_nodes, node_mask=node_mask)
+            if z_F_nodes is not None:
+                z_F_enhanced, global_F = self.hierarchical(z_F_nodes, node_mask=node_mask)
+            else:
+                z_F_enhanced, global_F = None, None
+        else:
+            # 消融实验：跳过 GNN，使用全局平均池化代替
+            z_T_enhanced = z_T_nodes
+            global_T = z_T_enhanced.mean(dim=1)  # 全局平均池化
+            if z_F_nodes is not None:
+                z_F_enhanced = z_F_nodes
+                global_F = z_F_enhanced.mean(dim=1)
+            else:
+                z_F_enhanced, global_F = None, None
+        
+        intermediate['z_T_after_hier'] = z_T_enhanced
+        intermediate['z_F_after_hier'] = z_F_enhanced
+        
+        rep_T = global_T
+        rep_F = global_F
+        
+        if return_intermediate:
+            return rep_T, rep_F, intermediate
+        
+        return rep_T, rep_F
+    
+    # ===================== 物理距离计算（对比学习Ground Truth） =====================
+    
+    def compute_physical_distances(self, x: torch.Tensor, sdtw=None, node_mask=None) -> tuple:
+        """
+        计算时域和频域的物理距离矩阵 (B, B)
+        
+        【修复病灶三】：使用 EMA 归一化的物理距离计算器
+        【修复问题4】：支持 node_mask 过滤虚拟节点
+        
+        这是 Ground Truth 生成器，用于对比学习监督信号。
+        使用 EMA 维护全局统计量，确保归一化后的值具有跨 batch 的一致物理意义。
+        
+        Args:
+            x: 输入数据 (B, N, T, C)
+            sdtw: SoftDTW 距离计算函数
+            node_mask: 节点掩码 (B, N)，True=真实节点，False=虚拟节点
+        
+        Returns:
+            gt_dist_T: 时域 Ground Truth 距离矩阵 (B, B)，范围 [0, 1]
+            gt_dist_F: 频域 Ground Truth 距离矩阵 (B, B)，范围 [0, 1]
+        """
+        # _physics_computer 在 __init__ 中初始化，作为子模块注册
+        # EMA 统计量会随模型保存/加载，训练过程中持续累积
+        gt_dist_T, gt_dist_F = self._physics_computer(x, sdtw=sdtw, node_mask=node_mask)
+        
+        return gt_dist_T, gt_dist_F
+    
+    def get_physics_ema_stats(self) -> dict:
+        """
+        获取物理距离计算器的 EMA 统计量（用于调试和监控）
+        
+        Returns:
+            包含 EMA min/max 统计量的字典
+        """
+        return self._physics_computer.get_ema_stats()
+    
+    def batch_contrastive_forward(self, x: torch.Tensor, 
+                                  gt_dist_T: torch.Tensor = None,
+                                  gt_dist_F: torch.Tensor = None,
+                                  sdtw=None,
+                                  node_mask: torch.Tensor = None) -> tuple:
+        """
+        Batch-Batch 物理引导对比学习前向传播
+        
+        【修复病灶二】：使用投影头保护主特征空间
+        
+        核心思想：强迫模型学习到的隐空间 Z 反映真实的物理距离。
+        
+        Args:
+            x: 输入数据 (B, N, T, C)
+            gt_dist_T: 时域物理距离矩阵 (B, B)，可选，自动计算
+            gt_dist_F: 频域物理距离矩阵 (B, B)，可选，自动计算
+            sdtw: SoftDTW 函数
+            node_mask: 节点掩码 (B, N) 布尔张量，可选
+        
+        Returns:
+            loss: 总损失
+            loss_dict: 损失字典
+        """
+        B = x.shape[0]
+        
+        # 1. 计算 Ground Truth 物理距离矩阵（如果未提供）
+        # 【修复问题4】：传入 node_mask 过滤虚拟节点
+        if gt_dist_T is None or gt_dist_F is None:
+            gt_dist_T, gt_dist_F = self.compute_physical_distances(x, sdtw=sdtw, node_mask=node_mask)
+        
+        # 2. 编码获取表示
+        rep_T, rep_F = self.encode(x, node_mask=node_mask)
+        
+        # 3. 投影 + 归一化（修复病灶二）
+        z_T = self.proj_head_T(rep_T)
+        z_F = self.proj_head_F(rep_F)
+        z_T = F.normalize(z_T, p=2, dim=1)
+        z_F = F.normalize(z_F, p=2, dim=1)
+        
+        # 4. 计算预测距离矩阵（归一化后范围 [0, 2]，缩放到 [0, 1]）
+        pred_dist_T = torch.cdist(z_T, z_T) / 2.0
+        pred_dist_F = torch.cdist(z_F, z_F) / 2.0
+        
+        # 5. 距离回归损失
+        loss_T = F.mse_loss(pred_dist_T, gt_dist_T)
+        loss_F = F.mse_loss(pred_dist_F, gt_dist_F)
+        loss_contrast = loss_T + loss_F
+        
+        # 主特征距离（用于监控）
+        with torch.no_grad():
+            rep_dist_T = torch.cdist(rep_T, rep_T)
+            rep_dist_F = torch.cdist(rep_F, rep_F)
+        
+        loss_dict = {
+            'contrast': loss_contrast.item(),
+            'loss_T': loss_T.item(),
+            'loss_F': loss_F.item(),
+            'pred_T_mean': pred_dist_T.mean().item(),
+            'pred_F_mean': pred_dist_F.mean().item(),
+            'rep_T_dist_mean': rep_dist_T.mean().item(),
+            'rep_F_dist_mean': rep_dist_F.mean().item(),
+            'gt_T_mean': gt_dist_T.mean().item(),
+            'gt_F_mean': gt_dist_F.mean().item()
+        }
+        
+        return loss_contrast, loss_dict
+    
+    # ===================== 预训练任务 =====================
+    
+    def masked_recon_forward(self, x, return_all=False, exo_categorical=None, exo_continuous=None,
+                              node_mask=None):
+        """掩码重建预训练"""
+        if not self.use_masked_recon:
+            raise RuntimeError("模型未启用掩码重建功能")
+
+        # 保存原始形状信息
+        original_shape = x.shape
+        device = x.device
+
+        # 多节点数据格式: (B, N, T, C) → 展平为 (B*N, C, T) 用于掩码和编码
+        # 【修复】: 必须先 view 成 (B*N, T, C) 再 permute，直接 view(B*N, C, T) 会导致数据错位！
+        if len(x.shape) == 4:
+            B, N, T, C = x.shape
+            x_flat = x.view(B * N, T, C).permute(0, 2, 1)  # (B*N, T, C) -> (B*N, C, T)
+        else:
+            B, C, T = x.shape
+            N = 1
+            x_flat = x
+
+        # 生成混合掩码
+        mask, is_causal, mask_start = generate_hybrid_mask(
+            B, T, self.mask_ratio,
+            random_strategy=self.random_mask_strategy,
+            causal_strategy=self.causal_mask_strategy,
+            causal_prob=self.causal_prob
+        )
+        mask = mask.to(device)
+        is_causal = is_causal.to(device)
+
+        # 扩展掩码到所有节点: (B, T) → (B*N, T)
+        mask_expanded = mask.repeat_interleave(N, dim=0)
+
+        # 应用掩码
+        x_masked_flat = apply_mask(x_flat, mask_expanded)
+
+        # 重塑回多节点格式: (B*N, C, T) → (B, N, T, C) 供 encode 使用
+        # 【修复】: 先 permute 回 (B*N, T, C) 再 view
+        x_masked = x_masked_flat.permute(0, 2, 1).contiguous().view(B, N, T, C)
+        
+        # 编码（带掩码）
+        rep_T, rep_F, intermediate = self.encode(
+            x_masked, return_intermediate=True,
+            exo_categorical=exo_categorical,
+            exo_continuous=exo_continuous,
+            node_mask=node_mask
+        )
+        
+        # ========== 重建任务（修复问题二：跑道级重建）==========
+        # 损失计算
+        if len(x.shape) == 4:
+            # 【修复】：使用节点级表示进行重建
+            # 原来：Z (B, fusion_dim) → recon (B, C, T) → repeat → (B*N, C, T) ❌
+            # 修复：Z_nodes (B*N, fusion_dim) → recon (B*N, C, T) ✅
+            
+            # 获取节点级表示
+            z_T_nodes = intermediate['z_T_after_hier']  # (B, N, rep_size)
+            z_F_nodes = intermediate.get('z_F_after_hier', None)
+            
+            # 展平并融合
+            z_T_flat = z_T_nodes.view(B * N, -1)
+            z_F_flat = z_F_nodes.view(B * N, -1) if z_F_nodes is not None else None
+            Z_nodes = self.fusion(z_T_flat, z_F_flat)  # (B*N, fusion_dim)
+            
+            # 节点级重建
+            recon = self.decoder(Z_nodes)  # (B*N, C, T)
+            
+            # 【修复问题3】：过滤虚拟节点的损失
+            node_mask_flat = node_mask.view(B * N) if node_mask is not None else None
+            loss = masked_mse_loss(recon, x_flat, mask_expanded, node_mask=node_mask_flat)
+            
+            # 保留机场级融合用于输出
+            Z = self.fusion(rep_T, rep_F)
+        else:
+            # 单节点情况（无需 node_mask）
+            Z = self.fusion(rep_T, rep_F)
+            recon = self.decoder(Z)
+            loss = masked_mse_loss(recon, x_flat, mask_expanded)
+        
+        num_causal = is_causal.sum().item()
+        num_random = B - num_causal
+        
+        loss_dict = {
+            'total': loss.item(),
+            'recon': loss.item(),
+            'num_causal': num_causal,
+            'num_random': num_random,
+            'has_exogenous': exo_categorical is not None or exo_continuous is not None
+        }
+        
+        if return_all:
+            outputs = {
+                'original': x_flat,
+                'masked': x_masked,
+                'reconstructed': recon,
+                'mask': mask,
+                'rep_T': rep_T,
+                'rep_F': rep_F,
+                'Z': Z
+            }
+            return loss, loss_dict, outputs
+        
+        return loss, loss_dict
+    
+    # ===================== 统一预训练任务 =====================
+
+    def unified_pretrain_forward(self, x,
+                                  exo_categorical=None, exo_continuous=None,
+                                  sdtw=None,
+                                  node_mask: torch.Tensor = None):
+        """
+        统一预训练：掩码重建 + Batch-Batch 物理对比学习
+        
+        【修复病灶一】：编码器只接收一种输入分布（x_masked）
+        
+        Loss = λ_recon * loss_recon + λ_contrast * (loss_T + loss_F)
+        
+        数据流（修复后）:
+            1. x(完整) -> [物理距离计算] -> gt_dist_T, gt_dist_F  （仅用于监督信号）
+            2. x(完整) -> [掩码] -> x_masked
+            3. x_masked -> encoder -> rep_T, rep_F  （只编码一次！）
+            4. rep_T, rep_F -> [重建分支] -> fusion -> decoder -> recon -> L_recon
+            5. rep_T, rep_F -> [对比分支] -> cdist -> pred_dist -> MSE(pred_dist, gt_dist) -> L_contrast
+        
+        关键改动:
+            - 编码器只被调用一次，输入是 x_masked
+            - 对比学习的 GT 仍基于完整数据（物理距离的真实监督信号）
+            - 对比学习的预测基于掩码后的表示（与重建任务共享）
+            - 解决了"输入分布精神分裂"问题
+        
+        Args:
+            x: 输入数据 (B, N, T, C)
+            exo_categorical: 离散外生变量
+            exo_continuous: 连续外生变量
+            sdtw: SoftDTW 函数
+            node_mask: 节点掩码 (B, N) 布尔张量
+        
+        Returns:
+            loss: 总损失
+            loss_dict: 损失字典
+        """
+        if not self.use_masked_recon:
+            raise RuntimeError("统一预训练需要启用掩码重建功能")
+        
+        B, N, T, C = x.shape
+        device = x.device
+        
+        # ========== Step 1: 计算物理距离 GT（基于完整数据，仅用于监督信号）==========
+        # 【修复问题4】：传入 node_mask 过滤虚拟节点
+        gt_dist_T, gt_dist_F = self.compute_physical_distances(x, sdtw=sdtw, node_mask=node_mask)
+        
+        # ========== Step 2: 生成掩码并应用 ==========
+        # 展平为 (B*N, C, T) 用于掩码操作
+        # 【修复】: 必须先 view 成 (B*N, T, C) 再 permute，直接 view(B*N, C, T) 会导致数据错位！
+        x_flat = x.view(B * N, T, C).permute(0, 2, 1)  # (B*N, T, C) -> (B*N, C, T)
+        
+        # 生成混合掩码
+        mask, is_causal, mask_start = generate_hybrid_mask(
+            B, T, self.mask_ratio,
+            random_strategy=self.random_mask_strategy,
+            causal_strategy=self.causal_mask_strategy,
+            causal_prob=self.causal_prob
+        )
+        mask = mask.to(device)
+        is_causal = is_causal.to(device)
+        
+        # 扩展掩码到所有节点: (B, T) → (B*N, T)
+        mask_expanded = mask.repeat_interleave(N, dim=0)
+        
+        # 应用掩码
+        x_masked_flat = apply_mask(x_flat, mask_expanded)
+        
+        # 重塑回多节点格式: (B*N, C, T) → (B, N, T, C) 供 encode 使用
+        # 【修复】: 先 permute 回 (B*N, T, C) 再 view
+        x_masked = x_masked_flat.permute(0, 2, 1).contiguous().view(B, N, T, C)
+        
+        # ========== Step 3: 编码（只调用一次，输入是 x_masked）==========
+        rep_T, rep_F, intermediate = self.encode(
+            x_masked, return_intermediate=True,
+            exo_categorical=exo_categorical,
+            exo_continuous=exo_continuous,
+            node_mask=node_mask
+        )
+        
+        # ========== Step 4: 重建任务（修复问题二：跑道级重建）==========
+        # 【修复】：使用节点级表示进行重建，而非机场级平均
+        # 原来：Z (B, fusion_dim) → recon (B, C, T) → repeat → (B*N, C, T) ❌ 丢失跑道细节
+        # 修复：Z_nodes (B*N, fusion_dim) → recon (B*N, C, T) ✅ 保留跑道细节
+        
+        # 4.1 获取节点级表示
+        z_T_nodes = intermediate['z_T_after_hier']  # (B, N, rep_size)
+        z_F_nodes = intermediate.get('z_F_after_hier', None)  # (B, N, rep_size) or None
+        
+        # 4.2 展平为 (B*N, rep_size)
+        z_T_flat = z_T_nodes.view(B * N, -1)
+        z_F_flat = z_F_nodes.view(B * N, -1) if z_F_nodes is not None else None
+        
+        # 4.3 节点级融合
+        Z_nodes = self.fusion(z_T_flat, z_F_flat)  # (B*N, fusion_dim)
+        
+        # 4.4 节点级重建
+        recon = self.decoder(Z_nodes)  # (B*N, C, T)
+        
+        # 4.5 重建损失（修复问题3：过滤虚拟节点）
+        # 展平 node_mask: (B, N) → (B*N,) 用于过滤虚拟节点的损失
+        node_mask_flat = node_mask.view(B * N) if node_mask is not None else None
+        loss_recon = masked_mse_loss(recon, x_flat, mask_expanded, node_mask=node_mask_flat)
+        
+        # 同时保留机场级融合用于对比学习
+        Z = self.fusion(rep_T, rep_F)  # (B, fusion_dim) - 用于其他任务
+        
+        # ========== Step 5: 对比学习任务（修复病灶二：使用投影头）==========
+        # 5.1 投影：将主特征映射到对比学习专用空间
+        # 关键：对比 Loss 只修改投影头，主特征 rep_T, rep_F 保持广阔分布
+        z_T = self.proj_head_T(rep_T)  # (B, proj_output_dim)
+        z_F = self.proj_head_F(rep_F)  # (B, proj_output_dim)
+        
+        # 5.2 L2 归一化：投射到单位球面，使距离计算更稳定
+        # 归一化后，两向量的欧氏距离范围为 [0, 2]
+        z_T = F.normalize(z_T, p=2, dim=1)
+        z_F = F.normalize(z_F, p=2, dim=1)
+        
+        # 5.3 计算预测距离矩阵
+        pred_dist_T = torch.cdist(z_T, z_T)  # (B, B), 范围 [0, 2]
+        pred_dist_F = torch.cdist(z_F, z_F)  # (B, B), 范围 [0, 2]
+        
+        # 5.4 距离缩放：将 [0, 2] 映射到 [0, 1]，与 GT 量级匹配
+        pred_dist_T = pred_dist_T / 2.0
+        pred_dist_F = pred_dist_F / 2.0
+        
+        # 5.5 距离回归损失
+        loss_T = F.mse_loss(pred_dist_T, gt_dist_T)
+        loss_F = F.mse_loss(pred_dist_F, gt_dist_F)
+        loss_contrast = loss_T + loss_F
+        
+        # ========== Step 6: 联合损失 ==========
+        lambda_recon = self.config.get('lambda_recon', 1.0)
+        lambda_contrast = self.config.get('lambda_contrast', 0.5)
+        
+        total_loss = lambda_recon * loss_recon + lambda_contrast * loss_contrast
+        
+        # 统计信息
+        num_causal = is_causal.sum().item()
+        num_random = B - num_causal
+        
+        # 主特征距离（用于监控，验证主特征空间未被压缩）
+        with torch.no_grad():
+            rep_dist_T = torch.cdist(rep_T, rep_T)
+            rep_dist_F = torch.cdist(rep_F, rep_F)
+        
+        # 获取 EMA 统计量（用于监控归一化是否稳定）
+        ema_stats = self.get_physics_ema_stats()
+        
+        loss_dict = {
+            'total': total_loss.item(),
+            'recon': loss_recon.item(),
+            'contrast': loss_contrast.item(),
+            'loss_T': loss_T.item(),
+            'loss_F': loss_F.item(),
+            # 投影特征的距离（被压缩到 [0,1]，这是预期行为）
+            'pred_T_mean': pred_dist_T.mean().item(),
+            'pred_F_mean': pred_dist_F.mean().item(),
+            # 主特征的距离（应该保持广阔，不被压缩）
+            'rep_T_dist_mean': rep_dist_T.mean().item(),
+            'rep_F_dist_mean': rep_dist_F.mean().item(),
+            # GT 距离（EMA 归一化后）
+            'gt_T_mean': gt_dist_T.mean().item(),
+            'gt_F_mean': gt_dist_F.mean().item(),
+            # EMA 统计量（监控归一化稳定性，修复病灶三）
+            'ema_dist_T_range': ema_stats['dist_T_max'] - ema_stats['dist_T_min'],
+            'ema_dist_F_range': ema_stats['dist_F_max'] - ema_stats['dist_F_min'],
+            'ema_batches_seen': ema_stats['num_batches_seen'],
+            # 其他信息
+            'num_causal': num_causal,
+            'num_random': num_random,
+            'lambda_recon': lambda_recon,
+            'lambda_contrast': lambda_contrast,
+            'has_exogenous': exo_categorical is not None or exo_continuous is not None
+        }
+        
+        return total_loss, loss_dict
+    
+    # ===================== 分类任务 =====================
+    
+    def classify(self, x, exo_categorical=None, exo_continuous=None, node_mask=None):
+        """分类任务"""
+        rep_T, rep_F = self.encode(
+            x,
+            exo_categorical=exo_categorical,
+            exo_continuous=exo_continuous,
+            node_mask=node_mask
+        )
+        features = self.fusion(rep_T, rep_F)
+        logits = self.classifier(features)
+        return logits
+    
+    def get_representation(self, x, return_separate=False, exo_categorical=None, exo_continuous=None,
+                           node_mask=None):
+        """获取特征表示"""
+        rep_T, rep_F = self.encode(
+            x,
+            exo_categorical=exo_categorical,
+            exo_continuous=exo_continuous,
+            node_mask=node_mask
+        )
+        fused = self.fusion(rep_T, rep_F)
+        
+        if return_separate:
+            return fused, rep_T, rep_F
+        return fused
+    
+    def get_fusion_info(self, x=None, exo_categorical=None, exo_continuous=None):
+        """获取融合模块信息"""
+        info = {
+            'fusion_type': self.fusion_type,
+            'use_exogenous': self.use_exogenous
+        }
+        
+        if x is not None:
+            rep_T, rep_F = self.encode(
+                x,
+                exo_categorical=exo_categorical,
+                exo_continuous=exo_continuous
+            )
+            info.update(self.fusion.get_fusion_weights(rep_T, rep_F))
+        else:
+            info.update(self.fusion.get_fusion_weights())
+        
+        if self.use_exogenous:
+            info['exo_encoder'] = self.exo_encoder.get_info()
+        
+        return info
+    
+    def get_contrastive_features(self, x, exo_categorical=None, exo_continuous=None):
+        """获取对比学习特征"""
+        rep_T, rep_F = self.encode(x, exo_categorical=exo_categorical,
+                                   exo_continuous=exo_continuous)
+        
+        h_T = F.normalize(rep_T, dim=1)
+        h_F = F.normalize(rep_F, dim=1)
+        
+        Z = self.fusion(rep_T, rep_F)
+        return h_T, h_F, Z
+    
+    # ===================== 统一前向传播 =====================
+    
+    def forward(self, x, mode=None, exo_categorical=None, exo_continuous=None, **kwargs):
+        """统一前向传播接口"""
+        mode = mode or self.task_type
+        
+        if mode == 'unified_pretrain':
+            sdtw = kwargs.get('sdtw', None)
+            return self.unified_pretrain_forward(
+                x,
+                exo_categorical=exo_categorical,
+                exo_continuous=exo_continuous,
+                sdtw=sdtw
+            )
+        elif mode == 'pretrain':
+            # 重定向到 unified_pretrain
+            logger.warning("'pretrain' mode 已废弃，使用 'unified_pretrain' 替代")
+            sdtw = kwargs.get('sdtw', None)
+            return self.unified_pretrain_forward(
+                x,
+                exo_categorical=exo_categorical,
+                exo_continuous=exo_continuous,
+                sdtw=sdtw
+            )
+        elif mode == 'masked_recon':
+            return self.masked_recon_forward(
+                x, exo_categorical=exo_categorical, 
+                exo_continuous=exo_continuous, **kwargs
+            )
+        elif mode == 'classify':
+            return self.classify(x, exo_categorical, exo_continuous)
+        else:
+            return self.classify(x, exo_categorical, exo_continuous)
+    
+    # ===================== 辅助方法 =====================
+    
+    def freeze_encoder(self):
+        """冻结编码器参数"""
+        for param in self.encoder_T.parameters():
+            param.requires_grad = False
+        for param in self.encoder_F.parameters():
+            param.requires_grad = False
+        for param in self.hierarchical.parameters():
+            param.requires_grad = False
+    
+    def unfreeze_encoder(self):
+        """解冻编码器参数"""
+        for param in self.encoder_T.parameters():
+            param.requires_grad = True
+        for param in self.encoder_F.parameters():
+            param.requires_grad = True
+        for param in self.hierarchical.parameters():
+            param.requires_grad = True
