@@ -13,7 +13,8 @@ from collections import Counter
 from pathlib import Path
 
 
-def load_records(path: Path) -> list[dict]:
+def load_records(path: Path | str) -> list[dict]:
+    path = Path(path)
     if not path.exists():
         return []
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
