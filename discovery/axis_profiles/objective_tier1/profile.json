@@ -1,0 +1,23 @@
+{
+  "schema": "axis_profile.v0_1_skeleton",
+  "axis_id": "objective_tier1",
+  "display_name": "O-t1",
+  "status": "active",
+  "trial_seq_range": [
+    200,
+    299
+  ],
+  "editable_paths": [
+    "<DOWNSTREAM>/src/trial_objective.py"
+  ],
+  "locked_within_axis": [],
+  "axis_lock_note": "G-8 抽薄验收前本轴不得实际放行 trial",
+  "template_ids": [
+    "O1-horizon-weighted-mse",
+    "O2-event-weighted-loss",
+    "O3-classwise-focal"
+  ],
+  "free_guidance_inject": true,
+  "owner": "",
+  "phase": "A-skeleton (runner switchover NOT done; runner constants remain authoritative)"
+}

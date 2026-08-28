@@ -1,0 +1,26 @@
+{
+  "schema": "axis_profile.v0_1_skeleton",
+  "axis_id": "representation",
+  "display_name": "R",
+  "status": "active",
+  "trial_seq_range": [
+    100,
+    199
+  ],
+  "editable_paths": [
+    "<DOWNSTREAM>/src/trial_features.py"
+  ],
+  "locked_within_axis": [],
+  "axis_lock_note": "禁止触碰 map_labels（标签映射属 contract，不是特征）；G-8 抽薄验收前本轴不得实际放行 trial",
+  "template_ids": [
+    "R1-wxcode-embedding",
+    "R2-thermo-precursors",
+    "R3-metar-age",
+    "R4-runway-frame-wind",
+    "R5-wind-cyclic-encoding",
+    "R6-multiscale-diff"
+  ],
+  "free_guidance_inject": true,
+  "owner": "",
+  "phase": "A-skeleton (runner switchover NOT done; runner constants remain authoritative)"
+}
