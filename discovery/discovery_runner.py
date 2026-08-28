@@ -575,15 +575,41 @@ def resolve_parent_refs(parent_trial: str) -> dict:
     return refs
 
 
-def adjudicate(result: dict) -> tuple[str, str]:
-    """裁决规则 v1（预注册，筛选期单 seed 口径）：
-    completed 且主指标配对改善 >= 0.0005 -> supported（筛选级，待 3-seed 确认）；
-    completed 且未达筛选线 -> refuted（该机制在单 seed 上无可测效应）；
-    其余（failed/invalid）-> not_evaluated。
+TIER2_PRIMARY_KEY = "tier2_primary_pretrained_vs_parent_scratch.RMSE_macro_norm"
+
+
+def adjudicate(result: dict, axis: str = "") -> tuple[str, str]:
+    """裁决规则（预注册，筛选期单 seed 口径）。
+
+    decision_policy v1.2（2026-08-28 C+A 双签，SHA 7268682a…）stage 绑定：
+    - 默认轴：primary = forecast_scratch.RMSE_macro_norm 同 stage 配对（与 v1.1 实现一致）；
+    - objective_tier2：primary = candidate forecast_pretrained vs parent forecast_scratch
+      （负迁移修复到反超裸训）；同 stage 改善但未反超记 partial_effect（不 过筛）。
+    阈值沿用 0.0005 不变。verdict 枚举受冻结 schema 限制，v1.2 细分标签写入 basis 文本。
     """
     if result["status"] != "completed":
-        return "not_evaluated", "verdict_rule_v1: 非 completed 不裁决"
-    primary = result["paired_delta_vs_parent"].get("forecast_scratch.RMSE_macro_norm")
+        return "not_evaluated", "verdict_rule: 非 completed 不裁决"
+    deltas = result["paired_delta_vs_parent"]
+    if axis == TIER2_AXIS:
+        primary = deltas.get(TIER2_PRIMARY_KEY)
+        if primary is None:
+            return "inconclusive", "verdict_rule_v1.2(tier2): 缺 pretrained-vs-parent-scratch 配对值"
+        if primary <= -0.0005:
+            return "supported", (
+                f"verdict_rule_v1.2(tier2): pretrained 反超 parent scratch {-primary:.4f} >= 0.0005"
+                "（单 seed，待确认）"
+            )
+        same_stage = deltas.get("forecast_pretrained.RMSE_macro_norm")
+        if same_stage is not None and same_stage <= -0.0005:
+            return "refuted", (
+                f"verdict_rule_v1.2(tier2): partial_effect——负迁移收窄（同 stage Δ {same_stage:+.4f}）"
+                f"但未反超 scratch（vs parent scratch Δ {primary:+.4f}），不构成 screen_pass"
+            )
+        return "refuted", (
+            f"verdict_rule_v1.2(tier2): refuted_on_pretrained——vs parent scratch Δ {primary:+.4f}，"
+            f"同 stage Δ {same_stage:+.4f}（无改善或恶化）"
+        )
+    primary = deltas.get("forecast_scratch.RMSE_macro_norm")
     if primary is None:
         return "inconclusive", "verdict_rule_v1: 缺主指标配对值"
     if primary <= -0.0005:
@@ -770,17 +796,24 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
                 outcome.output_root, trial["trial_id"], seed, trial_dir / "eval",
                 parent_refs=parent_refs,
             )
+            if axis == TIER2_AXIS:
+                # decision_policy v1.2 stage 绑定：tier2 primary = pretrained vs parent scratch
+                pre = flat.get("forecast_pretrained.policy.RMSE_macro_norm")
+                scr_ref = parent_refs.get("forecast_scratch", {}).get("RMSE_macro_norm")
+                if isinstance(pre, dict) and "value" in pre and scr_ref is not None:
+                    deltas[TIER2_PRIMARY_KEY] = round(pre["value"] - scr_ref, 6)
             result["status"] = combined
             result["status_reason"] = "screening 单 seed 完成" if combined == "completed" else "评测未全部 completed"
             result["metrics_by_endpoint"] = {k: v for k, v in flat.items() if not k.startswith("__")}
             result["paired_delta_vs_parent"] = deltas
             result["evaluation_manifest_digest"] = flat.get("__manifest_digest__", "")
             result["guardrail_check"] = guardrail_advisory(deltas)
-            primary = deltas.get("forecast_scratch.RMSE_macro_norm")
+            primary_key = TIER2_PRIMARY_KEY if axis == TIER2_AXIS else "forecast_scratch.RMSE_macro_norm"
+            primary = deltas.get(primary_key)
             if primary is not None:
-                # decision_policy v1.1 筛选线：配对改善 >= 0.0005
+                # decision_policy v1.2 筛选线：配对改善 >= 0.0005（stage 绑定按轴）
                 result["screen_pass"] = bool(primary <= -0.0005)
-        verdict, verdict_basis = adjudicate(result)
+        verdict, verdict_basis = adjudicate(result, axis=axis)
         result["hypothesis_verdict"] = verdict
         tail = ""
         if outcome.status != "success":
