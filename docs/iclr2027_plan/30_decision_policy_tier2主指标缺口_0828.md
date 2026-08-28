@@ -55,10 +55,37 @@ verdict_rule_v1 的主指标锚在 scratch 腿，而 tier2 的注册证伪条件
 
 ## 五、行动清单
 
-- [ ] 站会 5 分钟过本提案；C + A 重签 → decision_policy v1.2 + 新 SHA 入 SIGNOFF 台账；
-- [ ] 重签后 A 改 `adjudicate()`（tier2 分支）+ 对 obj-007（及可能的 trial 10）
+- [x] v1.2 草案已起草（2026-08-28 17:50）：`00_contract/decision_policy_v1.2_draft.json`，
+      SHA-256 `7268682a…`；逐行 diff `decision_policy_v1.1_to_v1.2.diff`（56 行）；
+      SIGNOFF 台账已追加待签条目；v1.1 原件未动（`eb49492b…` 校验一致）；
+- [ ] **C 审阅 + 回签**（今晚）：变更只有 stage 绑定一节，阈值零改动，评测器零改动、
+      无需重新交付任何东西；
+- [ ] 重签后 A 改 `adjudicate()`（tier2 分支）+ 对 obj-007 / obj-010
       按 v1.2 出**补充裁决记录**（verdict_backfill，注明双版本裁决一致/不一致）；
-- [ ] 重签前 tier2 trial 照常跑（证据仍完整落盘），lineage 消费方知悉标签语义缺口。
+- [x] 重签前 tier2 trial 照常跑（证据仍完整落盘），lineage 消费方知悉标签语义缺口。
+
+## 六、同类问题排查（2026-08-28 全轴自查）
+
+对照「轴的编辑面 × 裁决主指标的响应面」逐轴过了一遍：
+
+| 轴 | 编辑面能否触达 forecast_scratch（现行主指标） | 结论 |
+|---|---|---|
+| representation | **仅当变换 `x` 风分量本身**（rep-002/006 实证：exo/编码器路径 Δ 精确为 0） | 非缺口，但攻击面窄——排批权重议题（另行讨论） |
+| objective_tier1 | ✅ 直接改下游损失，scratch 腿响应（obj-008 实证 -0.000451） | 无问题 |
+| objective_tier2 | ❌ 结构性恒零 | **本文档主题，v1.2 修复** |
+| model（条件轴，未激活） | ✅ 结构改动影响全部腿 | 激活时无此缺口 |
+
+**遗留发现（不进 v1.2，站会议）**：
+
+1. **O3（分类 focal 模板）与主指标结构性脱钩**——它只改 classification_loss，
+   forecast 两腿必然 Δ=0，在任何版本政策下都不可能 screen_pass。这不是 bug
+   （政策有意把分类降为 guardrail），但意味着 O3 作为"候选产生器"是死路，
+   只能产出 guardrail/机制证据。选项：(a) 接受其证据价值、排批降权；
+   (b) 停用省 GPU；(c) 另立分类主指标赛道（动作大，需导师层面）。
+2. imputation_grid_mean 软 guardrail 仍待 C 加映射键 + 阈值标定（已知，非阻塞，
+   当前 trial 不产出插补腿）。
+3. 确认阶段数据齐备性核过：tier2 按 v1.2 需要各 seed 的 parent scratch 参考，
+   五 seed 表已全（42/43/2027/3407/5519），无阻塞。
 
 ---
 
