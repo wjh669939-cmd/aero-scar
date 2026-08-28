@@ -209,6 +209,17 @@ GUARDRAIL_ADVISORY_FLOOR = {
     "hazard_class_f1": -0.10,
 }
 
+# R/O-tier1 预训练 checkpoint 复用表（2026-08-28 批准）：这两轴的编辑不触及预训练
+# 代码路径，重训与复用权重级等价（212/212 张量逐位一致，独立重训对账验证）。
+# tier2 改预训练目标，必须全跑，不入此表。
+REUSE_PRETRAIN_CKPTS = {
+    42: "/root/autodl-tmp/aerowf_baseline/AeroWF/results/aerowf_unified_pretrain_full_formal_seed42_v1/checkpoints/best_model.pth",
+    43: "/root/autodl-tmp/aerowf_downstream_v2/results/full_pipeline/seed43_v2/pretrain/checkpoints/best_model.pth",
+    2027: "/root/autodl-tmp/aerowf_downstream_v2/results/full_pipeline/seed2027_v2/pretrain/checkpoints/best_model.pth",
+    3407: "/root/autodl-tmp/aerowf_downstream_v2/results/full_pipeline/seed3407_v2/pretrain/checkpoints/best_model.pth",
+    5519: "/root/autodl-tmp/aerowf_downstream_v2/results/full_pipeline/seed5519_v2/pretrain/checkpoints/best_model.pth",
+}
+
 # parent seed42 参考（C evaluator v1.0.2，2026-08-27 落盘于 discovery/parent_refs/）
 PARENT_REFS = {
     "forecast_scratch": {"RMSE_macro_norm": 0.04847144659294747, "MAE_macro_norm": 0.0254475019647884},
@@ -774,7 +785,12 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
             downstream_epochs=30,
             timeout_sec=6 * 3600,
         )
-        outcome = run_pipeline(cfg, seed=seed, run_id=f"disc_{trial['trial_id'].replace('-', '_')}_seed{seed}")
+        extra_args: list[str] = []
+        if axis != TIER2_AXIS and seed in REUSE_PRETRAIN_CKPTS:
+            extra_args = ["--reuse-pretrain-checkpoint", REUSE_PRETRAIN_CKPTS[seed]]
+        outcome = run_pipeline(cfg, seed=seed,
+                               run_id=f"disc_{trial['trial_id'].replace('-', '_')}_seed{seed}",
+                               extra_args=extra_args)
 
         result = {
             "trial_id": trial["trial_id"],
