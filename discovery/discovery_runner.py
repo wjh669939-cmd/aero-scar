@@ -154,6 +154,29 @@ def extract_tier2_function(source: str) -> str:
     return "\n".join(source.splitlines()[start - 1:end])
 
 
+def _normalized_ast_dump(source: str) -> str:
+    """AST 规范化摘要：剥离 docstring（注释本不入 AST）后 dump。
+    用于 no-op 编辑检测——llm-obj-010 只改注释/docstring 就宣称完成 patch_plan，
+    烧了整发 GPU 训出与 parent bit 级相同的模型。"""
+    import ast
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            body = node.body
+            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) \
+                    and isinstance(body[0].value.value, str):
+                node.body = body[1:] or [ast.Pass()]
+    return ast.dump(tree)
+
+
+def is_noop_edit(current_source: str, new_source: str) -> bool:
+    """编辑与基线在剥离 docstring 后 AST 等价 → 语义 no-op，训练前拒绝。"""
+    try:
+        return _normalized_ast_dump(current_source) == _normalized_ast_dump(new_source)
+    except SyntaxError:
+        return False
+
+
 # 假自由拦截（22 文档规则 2 的形式检查）：自由提案机制若与某模板实质等价，
 # 拒绝并要求重提。启发式：模板 action_id 的机制词（去掉编号）在提案文本中
 # 命中 >= max(2, 词数-1) 个即判等价。
@@ -405,6 +428,9 @@ re-indented for the class body automatically."""
         if splice_err:
             errors.append(splice_err)
             continue
+        if is_noop_edit(current_source, new_source):
+            errors.append("no-op edit: change is comments/docstring only, patch_plan not implemented")
+            continue
         if FORBIDDEN_IMPORT_PAT.search(new_source) and not FORBIDDEN_IMPORT_PAT.search(current_source):
             errors.append("forbidden import introduced by tier2 edit")
             continue
@@ -466,6 +492,9 @@ Answer with the complete new file content in ONE ```python code block and nothin
         missing = [sig for sig in REQUIRED_SIGNATURES[axis] if sig not in source]
         if missing:
             errors.append(f"missing required signatures: {missing}")
+            continue
+        if is_noop_edit(current_source, source):
+            errors.append("no-op edit: change is comments/docstring only, patch_plan not implemented")
             continue
         if FORBIDDEN_IMPORT_PAT.search(source):
             errors.append("forbidden import of locked/other-axis module")
