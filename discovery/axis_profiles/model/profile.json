@@ -1,0 +1,27 @@
+{
+  "schema": "axis_profile.v0_1_skeleton",
+  "axis_id": "model",
+  "display_name": "M",
+  "status": "conditional_pending_DEC-001_review_0902",
+  "trial_seq_range": [
+    400,
+    499
+  ],
+  "editable_paths": [
+    "<AEROWF_REPO>/models/AirFM/fusion/**",
+    "<AEROWF_REPO>/models/AirFM/encoders/**",
+    "<AEROWF_REPO>/models/AirFM/unified_model.py"
+  ],
+  "locked_within_axis": [],
+  "axis_lock_note": "unified_model.py 允改范围限 UnifiedSeries2Vec.encode 融合与层级组装段（人审 diff 兜底）",
+  "template_ids": [
+    "M1-horizon-conditioned-fusion-gate",
+    "M2-metar-decay-injection",
+    "M3-cross-runway-aggregator",
+    "M4-task-gated-adapters",
+    "M5-bounded-polar-head"
+  ],
+  "free_guidance_inject": true,
+  "owner": "",
+  "phase": "A-skeleton (runner switchover NOT done; runner constants remain authoritative)"
+}

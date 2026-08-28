@@ -1,0 +1,27 @@
+{
+  "schema": "axis_profile.v0_1_skeleton",
+  "axis_id": "objective_tier2",
+  "display_name": "O-t2",
+  "status": "active",
+  "trial_seq_range": [
+    300,
+    399
+  ],
+  "editable_paths": [
+    "<AEROWF_REPO>/models/AirFM/unified_model.py",
+    "<AEROWF_REPO>/models/AirFM/physics_distance.py",
+    "<AEROWF_REPO>/models/AirFM/masked.py"
+  ],
+  "locked_within_axis": [
+    "models/AirFM/soft_dtw_cuda.py（底层 CUDA 实现不许改，只许改其调用与权重）"
+  ],
+  "axis_lock_note": "DEC-002 于 2026-08-27 通过（先于任何候选结果记录）：三 seed 报告确认预训练对 forecast 负迁移（SNR 3.48，三 seed 同号），tier-2 动作（O4-O6）直接针对该信号；unified_model.py 允改范围限 unified_pretrain_forward 的 λ 组装段（人审 diff 兜底）",
+  "template_ids": [
+    "O4-horizon-conditioned-alignment",
+    "O5-coarse-scale-alignment",
+    "O6-masking-ratio"
+  ],
+  "free_guidance_inject": true,
+  "owner": "",
+  "phase": "A-skeleton (runner switchover NOT done; runner constants remain authoritative)"
+}
