@@ -56,14 +56,127 @@ EVAL_CMD = ["/root/miniconda3/bin/python", "-m", "evaluator.aerowf_evaluator"]
 AXIS_FILES = {
     "representation": Path(DOWNSTREAM) / "src/trial_features.py",
     "objective_tier1": Path(DOWNSTREAM) / "src/trial_objective.py",
+    "objective_tier2": Path(AEROWF_REPO) / "models/AirFM/unified_model.py",
 }
 REQUIRED_SIGNATURES = {
     "representation": ["def build_forecast_inputs(", "def build_classification_inputs(", "class AllowedContextEncoder"],
     "objective_tier1": ["def forecast_loss(", "def compute_class_weights(", "def classification_loss("],
+    "objective_tier2": ["def unified_pretrain_forward("],
 }
 FORBIDDEN_IMPORT_PAT = re.compile(
     r"^\s*(?:import|from)\s+(?:aerowf_|trial_features|trial_objective)", re.MULTILINE
 )
+
+# ---- objective_tier2：函数级替换协议 ----
+# axis_lock（DEC-002）备注 unified_model.py 允改范围限 unified_pretrain_forward。
+# 执行方式：LLM 只输出该方法的替换实现，驱动机械拼接回原文件——函数段之外
+# 逐字节不可变由拼接构造保证（比整文件重写 + 事后 diff 审计更强的机器执法）。
+TIER2_AXIS = "objective_tier2"
+TIER2_FUNC = "unified_pretrain_forward"
+
+
+def _tier2_func_span(source: str) -> tuple[int, int]:
+    """定位 TIER2_FUNC 在 source 中的行跨度（1-based 闭区间）。"""
+    import ast
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == TIER2_FUNC:
+            start = node.lineno
+            if node.decorator_list:
+                start = min(d.lineno for d in node.decorator_list)
+            return start, node.end_lineno
+    raise ValueError(f"{TIER2_FUNC} not found in source")
+
+
+def _normalize_func_lines(func_src: str) -> list[str] | None:
+    """按 def 行的缩进精确平移到零缩进（不用 dedent，保留 docstring 内空行原样）。"""
+    lines = func_src.splitlines()
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    while lines and not lines[-1].strip():
+        lines.pop()
+    if not lines:
+        return None
+    base = len(lines[0]) - len(lines[0].lstrip())
+    out: list[str] = []
+    for ln in lines:
+        if not ln.strip():
+            out.append(ln[base:] if len(ln) > base else "")
+        else:
+            if len(ln) - len(ln.lstrip()) < base:
+                return None
+            out.append(ln[base:])
+    return out
+
+
+def _validate_tier2_function(func_src: str) -> str | None:
+    """候选函数体校验：恰好一个同名函数、体内禁 import。返回错误或 None。"""
+    import ast
+    norm = _normalize_func_lines(func_src)
+    if norm is None:
+        return "tier2 edit has inconsistent indentation or is empty"
+    try:
+        tree = ast.parse("\n".join(norm))
+    except SyntaxError as exc:
+        return f"tier2 function does not parse: {exc}"
+    fns = [n for n in tree.body if isinstance(n, ast.FunctionDef)]
+    if len(tree.body) != 1 or len(fns) != 1 or fns[0].name != TIER2_FUNC:
+        return f"tier2 edit must be exactly one function named {TIER2_FUNC}"
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            return "import statements are not allowed inside the tier2 function"
+    return None
+
+
+def splice_tier2(current: str, func_src: str) -> tuple[str | None, str | None]:
+    """把候选方法拼回原文件（类内 4 空格缩进）。返回 (新全文, 错误)。"""
+    err = _validate_tier2_function(func_src)
+    if err:
+        return None, err
+    norm = _normalize_func_lines(func_src)
+    indented = ["    " + ln if ln else "" for ln in norm]
+    lines = current.splitlines()
+    try:
+        start, end = _tier2_func_span(current)
+    except ValueError as exc:
+        return None, str(exc)
+    new_source = "\n".join(lines[: start - 1] + indented + lines[end:]) + "\n"
+    try:
+        _tier2_func_span(new_source)
+    except (ValueError, SyntaxError) as exc:
+        return None, f"spliced file invalid: {exc}"
+    return new_source, None
+
+
+def extract_tier2_function(source: str) -> str:
+    """取出 TIER2_FUNC 的当前源码（保留类内缩进）。"""
+    start, end = _tier2_func_span(source)
+    return "\n".join(source.splitlines()[start - 1:end])
+
+
+# 假自由拦截（22 文档规则 2 的形式检查）：自由提案机制若与某模板实质等价，
+# 拒绝并要求重提。启发式：模板 action_id 的机制词（去掉编号）在提案文本中
+# 命中 >= max(2, 词数-1) 个即判等价。
+_FAKE_FREE_STOPWORDS = {"loss", "based", "aware", "with"}
+
+
+def fake_free_equivalent(trial: dict, actions: list[dict], axis: str) -> str | None:
+    if not trial.get("is_free_proposal"):
+        return None
+    blob = " ".join(
+        str(trial.get(k, "")) for k in ("action_id", "hypothesis", "patch_plan")
+    ).lower()
+    for act in actions:
+        if act.get("axis") != axis:
+            continue
+        tokens = [t for t in act["action_id"].lower().split("-")[1:]
+                  if t and t not in _FAKE_FREE_STOPWORDS]
+        if not tokens:
+            continue
+        hits = sum(1 for t in tokens if t in blob)
+        if hits >= max(2, len(tokens) - 1):
+            return act["action_id"]
+    return None
 
 # guardrail 咨询性阈值（decision_policy v1.1 为 3-seed 确认口径；单 seed 筛选阶段
 # 仅作 advisory 标注，不构成拒绝依据）
@@ -176,6 +289,47 @@ closs = m.classification_loss(logits, label, class_weights=w)
 assert closs.dim() == 0 and torch.isfinite(closs); closs.backward()
 print("SMOKE_OK")
 """,
+    "objective_tier2": """
+import sys
+sys.path.insert(0, "/root/autodl-tmp/aerowf_baseline/AeroWF")
+import importlib.util
+import torch
+spec = importlib.util.spec_from_file_location("models.AirFM.unified_model_trial", sys.argv[1])
+m = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = m
+spec.loader.exec_module(m)
+torch.manual_seed(0)
+# 缩小维度的真实构造：走与正式预训练相同的 unified_pretrain_forward 全路径
+# （物理距离 GT + 混合掩码 + 编码 + 重建/对比双损失 + 反传）
+config = {
+    "Data_shape": (2, 4, 96, 11),
+    "N_max": 4, "num_nodes": 3,
+    "emb_size": 32, "rep_size": 64, "num_heads": 2, "dim_ff": 64,
+    "dropout": 0.0,
+    "encoder_num_heads": 2, "encoder_num_layers": 1, "encoder_dim_ff": 64,
+    "frets_num_layers": 1,
+    "use_simple_gnn": True, "gnn_hidden": 32, "gnn_layers": 1,
+    "fusion_type": "residual_add", "use_frequency": True, "use_hierarchy": True,
+    "use_masked_recon": True, "mask_ratio": 0.25,
+    "random_mask_strategy": "random", "causal_mask_strategy": "last", "causal_prob": 0.5,
+    "proj_hidden_dim": 32, "proj_output_dim": 16,
+    "lambda_recon": 1.0, "lambda_contrast": 0.5,
+    "ema_momentum": 0.99, "warmup_batches": 1,
+    "sdtw_gamma": 0.1, "softdtw_pair_chunk_size": 8,
+}
+model = m.UnifiedSeries2Vec(config, num_classes=3)
+model.train()
+x = torch.rand(2, 4, 96, 11)
+node_mask = torch.tensor([[True, True, True, False], [True, True, False, False]])
+loss, loss_dict = model.unified_pretrain_forward(x, sdtw=None, node_mask=node_mask)
+assert loss.dim() == 0 and torch.isfinite(loss), f"pretrain loss bad: {loss}"
+loss.backward()
+grads = [p.grad for p in model.parameters() if p.grad is not None]
+assert grads, "no parameter received gradient"
+assert all(torch.isfinite(g).all() for g in grads), "non-finite gradients"
+assert isinstance(loss_dict, dict) and loss_dict, "loss_dict missing/empty"
+print("SMOKE_OK")
+""",
 }
 
 
@@ -200,8 +354,75 @@ def stderr_tail(output_root_base: Path, run_id: str, n: int = 12) -> str:
     return "\n".join(lines[-n:])
 
 
+def gen_tier2_edit(api_key: str, trial: dict, current_source: str) -> tuple[str | None, list[str]]:
+    """tier2 第二段 LLM：只产出 unified_pretrain_forward 的替换实现，驱动拼接回原文件。"""
+    func_src = extract_tier2_function(current_source)
+    prompt = f"""You are the code-editing module of a closed-loop auto-research system.
+Your approved research proposal for this trial:
+{json.dumps({k: trial[k] for k in ('hypothesis', 'patch_plan', 'expected_effect', 'falsification')}, ensure_ascii=False, indent=1)}
+
+You must implement the patch_plan by rewriting ONE METHOD of the pretraining model:
+`unified_pretrain_forward` of class UnifiedSeries2Vec. Your output will be
+mechanically spliced back into the original file — nothing outside this method
+can change, and any attempt to change it is discarded.
+
+INTERFACE CONTRACT (must hold, violating = trial fails before training):
+- Method signature must stay exactly:
+  def unified_pretrain_forward(self, x, exo_categorical=None, exo_continuous=None, sdtw=None, node_mask=None)
+- Must return (loss, loss_dict): loss a finite scalar tensor on the graph, loss_dict a dict.
+- NO import statements inside the method. Use names already available at module
+  level: torch, F, generate_hybrid_mask, apply_mask, masked_mse_loss, and self.* members.
+- The soft-DTW kernel is locked: you may change how it is invoked or weighted, not the kernel.
+- mask_ratio (masked fraction) is frozen; the random:causal mix (causal_prob argument
+  at the generate_hybrid_mask call) may be changed only if the patch_plan says so.
+- Keep tensor shapes flowing through encode/decoder identical to the current implementation.
+
+Current method source:
+```python
+{func_src}
+```
+
+Answer with the complete replacement method in ONE ```python code block and nothing
+else. Top-level indentation of the method in your block may be zero; it will be
+re-indented for the class body automatically."""
+    errors: list[str] = []
+    for attempt in range(2):
+        try:
+            raw = call_llm(api_key, [{"role": "user", "content": prompt}], temperature=0.2)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"tier2 codegen LLM call failed: {exc}")
+            continue
+        m = re.search(r"```python\n(.*?)```", raw, re.DOTALL)
+        if not m:
+            errors.append("tier2 codegen output missing ```python block")
+            continue
+        try:
+            assert_no_hidden_tokens(m.group(1))
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"hidden token in tier2 codegen output: {exc}")
+            continue
+        new_source, splice_err = splice_tier2(current_source, m.group(1))
+        if splice_err:
+            errors.append(splice_err)
+            continue
+        if FORBIDDEN_IMPORT_PAT.search(new_source) and not FORBIDDEN_IMPORT_PAT.search(current_source):
+            errors.append("forbidden import introduced by tier2 edit")
+            continue
+        tmp = Path("/tmp/_codegen_check.py")
+        tmp.write_text(new_source, encoding="utf-8")
+        try:
+            py_compile.compile(str(tmp), doraise=True)
+        except py_compile.PyCompileError as exc:
+            errors.append(f"py_compile failed: {exc}")
+            continue
+        return new_source, errors
+    return None, errors
+
+
 def gen_code_edit(api_key: str, axis: str, trial: dict, current_source: str) -> tuple[str | None, list[str]]:
     """第二段 LLM：把 patch_plan 落成新文件全文。返回 (新全文 or None, 错误列表)。"""
+    if axis == TIER2_AXIS:
+        return gen_tier2_edit(api_key, trial, current_source)
     contract_text = INTERFACE_CONTRACTS.get(axis, "")
     prompt = f"""You are the code-editing module of a closed-loop auto-research system.
 Your approved research proposal for this trial:
@@ -389,6 +610,13 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
             )
             continue
         if parsed.ok and parsed.trial_record["axis"] == axis:
+            equiv = fake_free_equivalent(parsed.trial_record, registry["actions"], axis)
+            if equiv:
+                proposal_errors.append(
+                    f"假自由拦截（22 文档规则 2）: {parsed.trial_record['action_id']} "
+                    f"与模板 {equiv} 实质等价，应改用该模板或提出模板外机制"
+                )
+                continue
             trial = parsed.trial_record
             trial["forced_free_round"] = forced
             break
@@ -417,22 +645,35 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
     # CPU 冒烟闸门（G-15）：假张量调用全部接口，坏编辑不烧 GPU；一次修复机会
     smoke_err = functional_smoke(axis, trial_dir / "edit.py")
     if smoke_err:
+        if axis == TIER2_AXIS:
+            repair_payload = extract_tier2_function(new_source)
+            repair_unit = "method (splice protocol unchanged)"
+        else:
+            repair_payload = new_source
+            repair_unit = "file"
         repair_prompt = (
-            "Your previous file edit failed a functional smoke test before training.\n"
+            "Your previous code edit failed a functional smoke test before training.\n"
             f"Error:\n{smoke_err}\n\n"
             "Fix the bug. Keep the same approved patch_plan and all interface signatures. "
-            "Answer with the complete corrected file in ONE ```python block and nothing else.\n\n"
-            f"Your previous file content:\n```python\n{new_source}\n```"
+            f"Answer with the complete corrected {repair_unit} in ONE ```python block and nothing else.\n\n"
+            f"Your previous content:\n```python\n{repair_payload}\n```"
         )
         try:
             raw = call_llm(api_key, [{"role": "user", "content": repair_prompt}], temperature=0.2)
             m = re.search(r"```python\n(.*?)```", raw, re.DOTALL)
             if m:
-                candidate = m.group(1)
-                assert_no_hidden_tokens(candidate)
-                if not FORBIDDEN_IMPORT_PAT.search(candidate) and all(
-                    sig in candidate for sig in REQUIRED_SIGNATURES[axis]
+                block = m.group(1)
+                assert_no_hidden_tokens(block)
+                candidate = None
+                if axis == TIER2_AXIS:
+                    candidate, splice_err = splice_tier2(current, block)
+                    if splice_err:
+                        candidate = None
+                elif not FORBIDDEN_IMPORT_PAT.search(block) and all(
+                    sig in block for sig in REQUIRED_SIGNATURES[axis]
                 ):
+                    candidate = block
+                if candidate is not None:
                     (trial_dir / "edit.py").write_text(candidate, encoding="utf-8")
                     smoke_err = functional_smoke(axis, trial_dir / "edit.py")
                     if smoke_err is None:
@@ -444,6 +685,17 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
                "hypothesis": trial["hypothesis"], "smoke_error": smoke_err[:400], "at": now_utc()}
         append_lineage(rec)
         return rec
+
+    if axis == TIER2_AXIS:
+        # axis_lock 备注的人审兜底材料：函数级 diff 落盘（advisory，不阻塞）
+        import difflib
+        diff = "\n".join(difflib.unified_diff(
+            extract_tier2_function(current).splitlines(),
+            extract_tier2_function(new_source).splitlines(),
+            fromfile=f"baseline/{TIER2_FUNC}", tofile=f"{trial['trial_id']}/{TIER2_FUNC}",
+            lineterm="",
+        ))
+        (trial_dir / "tier2_function_diff.txt").write_text(diff + "\n", encoding="utf-8")
 
     lock_cfg = load_config(CONTRACT / "axis_lock_v1_draft.json", AEROWF_REPO, DOWNSTREAM)
     dec = check([str(target)], axis, lock_cfg)
