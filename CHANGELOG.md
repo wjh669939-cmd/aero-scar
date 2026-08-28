@@ -4,7 +4,7 @@ All notable states of this archive are documented here.
 Component versions are frozen contracts: any change requires a version bump,
 golden/report regeneration where applicable, and a written rationale in `docs/`.
 
-## unreleased — 2026-08-28 (pre-push archive)
+## unreleased — 2026-08-28 (ready for v0.2.0 tag)
 
 Docs and governance catch-up; no harness/evaluator behavior change.
 
@@ -12,7 +12,7 @@ Docs and governance catch-up; no harness/evaluator behavior change.
 - Update docs/iclr2027_plan/14_完成清单/README.md org note: C private dir clones with image (no per-machine redeploy).
 - Add contract/decision_policy_v1.1_SIGNOFF.md (C+A frozen 2026-08-27).
 - Add docs/model_side/g8_seed43_consistency_report.md.
-- Add discovery/parent_refs_metrics/seed3407_summary.md (metrics only; seed5519 pending).
+- Add discovery/parent_refs_metrics/seed3407_summary.md and seed5519_summary.md: five-seed parent table complete (fc scratch 0.0481-0.0485; pretraining negative transfer same-sign on all five seeds).
 
 ## v0.1.0-pre-discovery — 2026-08-27
 
