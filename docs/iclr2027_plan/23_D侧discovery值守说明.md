@@ -28,7 +28,12 @@ nohup /root/miniconda3/bin/python -u /root/autodl-tmp/clh_deploy/discovery/disco
 - **必须**在 C1 评测器目录下、source 过 `evaluator.env` 的 shell 里启动；
 - `--start-seq` 递增不回退（trial_id 唯一性）；
 - 每发约 2.8h；排批前算好结束时间，**给夜间档（多 seed 确认 / parent 补跑）留整块**；
-- API key 不落盘、不进 git、不写进任何脚本。
+- API key 不落盘、不进 git、不写进任何脚本（链式启动用 `chain_batch*.sh`，key 走进程参数）。
+
+**8/28 起 objective_tier2 可排**（驱动已接线）：tier2 编辑走函数级拼接协议——LLM 只产出
+`unified_pretrain_forward` 替换实现，函数段之外机器保证不变；每个 tier2 trial 的
+`trials/<id>/tier2_function_diff.txt` 是函数 diff（人审兜底材料，出结果前扫一眼）。
+另：自由提案若与模板机制实质等价会被"假自由拦截"记 `proposal_rejected`，属正常事件。
 
 ## 三、监护与判读
 
