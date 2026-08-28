@@ -25,3 +25,24 @@
 - **状态：FROZEN（2026-08-27 23:00，C + A 双签生效）**——早于任何候选结果；
 - discovery 筛选、确认、候选冻结全部按本文本执行；
 - 唯一修订通道：任何候选确认之前，经 C + A 重签；此后本 campaign 按已签文本执行到底。
+
+
+---
+
+## v1.2 重签条目（2026-08-28 发起，待 C 签字）
+
+- 文件：00_contract/decision_policy_v1.2_draft.json
+- SHA-256：7268682a2c31dc9e734ef1e95bf1922d2a4f5f8bcbbe0c15ead91a9c4aa08f71
+- 变更范围：仅新增 primary_endpoint.stage_binding（默认轴 = forecast_scratch，与 v1.1 实现一致；
+  objective_tier2 = forecast_pretrained vs parent forecast_scratch）。阈值、guardrail、生命周期、
+  反作弊条款零改动。逐行 diff：00_contract/decision_policy_v1.1_to_v1.2.diff（56 行）。
+- 触发与依据：llm-obj-007 暴露 tier2 主指标恒零缺口（30 号文档）；修订发生于任何 screen_pass
+  之前，走 v1.1 预留通道（候选确认前 C+A 重签）。
+- 生效语义：C 签字前 v1.1 继续执行（tier2 trial 照跑，证据完整落盘）；签字后 A 更新驱动
+  adjudicate() 并对 v1.1 时代的 tier2 trial（llm-obj-007、llm-obj-010）出 verdict_backfill
+  双版本对照记录。
+
+| 角色 | 结论 | 日期 |
+|---|---|---|
+| A（框架/统筹） | 起草并确认 v1.1 原文哈希未动（eb49492b…） | 2026-08-28 |
+| C（评测侧 / test custodian） | 待签 | — |

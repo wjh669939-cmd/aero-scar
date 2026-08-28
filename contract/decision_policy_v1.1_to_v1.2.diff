@@ -1,0 +1,56 @@
+--- decision_policy_v1_draft.json (v1.1 FROZEN)
++++ decision_policy_v1.2_draft.json (DRAFT)
+@@ -1,12 +1,12 @@
+ {
+-  "schema_version": "aerowf_v1.decision_policy.v1_1",
+-  "status": "CALIBRATED_PENDING_FREEZE_SIGNOFF",
++  "schema_version": "aerowf_v1.decision_policy.v1_2",
++  "status": "DRAFT_PENDING_C_RESIGN",
+   "generated_at_utc": "2026-08-24T17:20:00Z",
+   "calibrated_at_utc": "2026-08-27T02:10:00Z",
+   "calibration_source": "D1 三 seed 配对方差报告（seed 42/43/2027，Contract V2，validation only）",
+   "freeze_deadline": "2026-08-31",
+   "freeze_owner": "A + C + 导师",
+-  "note": "数值已按 D1 噪声水平标定，待 C 与导师签字后冻结；冻结后不得因候选结果调整",
++  "note": "v1.2 草案：仅新增 primary endpoint 的 stage 绑定（tier2 映射）；全部阈值与 guardrail 数值与 v1.1 逐字相同。C+A 重签后生效；生效前 v1.1 继续执行。",
+   "noise_floor_reference": {
+     "forecast_scratch_rmse_cross_seed_sd": 0.00023,
+     "forecast_paired_delta_sd_observed": 0.0011,
+@@ -22,7 +22,23 @@
+     "screening_pass": "单 seed 改善 >= 0.0005（约 2 倍 scratch 跨 seed SD）且无 guardrail 硬违反",
+     "confirmation_pass": "3 seed 配对均值改善 >= 0.0010（约 4 倍噪声底，相对 ~2%）且 3/3 符号一致 且 UTC 日期块 paired bootstrap 95% CI 不含零",
+     "supporting_metric": "MAE_macro_norm 配对均值不得恶化 > 0.0005",
+-    "comparison": "paired_by_seed, block_bootstrap_ci_must_exclude_zero"
++    "comparison": "paired_by_seed, block_bootstrap_ci_must_exclude_zero",
++    "stage_binding": {
++      "rationale": "v1.1 未显式绑定 primary 的 stage；驱动实现默认 forecast_scratch。llm-obj-007 暴露：objective_tier2 只改预训练目标，scratch 腿与 parent bit 级相同，primary 恒为 0，一切 tier2 trial 被自动 refuted，与其注册证伪条件（pretrained vs scratch 关系）错位。本节按轴显式绑定，阈值不动。",
++      "default (representation / objective_tier1 / model)": {
++        "candidate_stage": "forecast_scratch",
++        "parent_reference": "parent forecast_scratch（同 seed 配对）",
++        "unchanged": true
++      },
++      "objective_tier2": {
++        "candidate_stage": "forecast_pretrained",
++        "parent_reference": "parent forecast_scratch（同 seed 配对；seed42 参考 0.048471）",
++        "semantics": "负迁移修复到反超裸训（与 DEC-002 激活理由及 O4-O6 注册证伪条件一致）；screening/confirmation 阈值沿用 0.0005/0.0010 不变",
++        "secondary_observation": "candidate forecast_pretrained vs parent forecast_pretrained（同 seed）：改善但未反超 scratch 记 partial_effect，不构成 screen_pass，仅入 lineage 供后续提案参考",
++        "noise_note": "pretrained 腿跨 seed SD 约 0.0017（5-seed，2026-08-28），高于 scratch 腿 0.00023：单 seed 筛选特异性较低，3-seed 确认（0.0010 + 同号 + CI 不含零）仍为约束性过滤，数值不变",
++        "verdict_labels": "refuted_on_pretrained / partial_effect / supported（筛选级）"
++      }
++    }
+   },
+   "guardrails": [
+     {
+@@ -75,6 +91,12 @@
+     {
+       "date": "2026-08-27",
+       "change": "22 号方案落地：自由提案触发规则（同轴连续 2 refuted 且模板穷举→强制自由，豁免条款保留）、non_expressibility 真实性字段、三类别记账口径写入 reporting_categories；全部先于任何候选结果预注册"
++    },
++    {
++      "version": "v1.2",
++      "date": "2026-08-28",
++      "change": "新增 primary_endpoint.stage_binding：默认轴绑定 forecast_scratch（与 v1.1 实现一致，语义不变）；objective_tier2 绑定 forecast_pretrained vs parent forecast_scratch。阈值/guardrail/生命周期/反作弊条款零改动。触发案例 llm-obj-007（见 30 号文档）；修订发生于任何 screen_pass 之前，走 v1.1 预留通道（候选确认前 C+A 重签）",
++      "pending": "C 重签"
+     }
+   ],
+   "reporting_categories": {
