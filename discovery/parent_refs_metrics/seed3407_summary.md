@@ -28,4 +28,4 @@ Per-horizon scratch RMSE_norm: T+1=0.04375, T+4=0.05068, T+8=0.05030.
 | 2027 | 0.04816 | 0.05268 | 0.710 | 0.745 |
 | 3407 | 0.04824 | 0.05554 | 0.731 | 0.814 |
 
-Note: seed5519 still running at archive time; will append in a later commit.
+Note: five-seed set complete; see seed5519_summary.md.
