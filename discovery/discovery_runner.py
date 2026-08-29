@@ -302,7 +302,7 @@ LLM_API_BASE = "https://api.deepseek.com"
 _SERVED_MODELS: set[str] = set()
 
 
-def call_llm(api_key: str, messages: list[dict], temperature: float, max_tokens: int = 16000) -> str:
+def call_llm(api_key: str, messages: list[dict], temperature: float, max_tokens: int = 32000) -> str:
     body = json.dumps({
         "model": LLM_MODEL,
         "messages": messages,
@@ -314,12 +314,23 @@ def call_llm(api_key: str, messages: list[dict], temperature: float, max_tokens:
         data=body,
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
     )
-    with urllib.request.urlopen(req, timeout=300) as resp:
+    with urllib.request.urlopen(req, timeout=600) as resp:
         payload = json.loads(resp.read().decode("utf-8"))
     served = payload.get("model")
     if served:
         _SERVED_MODELS.add(str(served))
-    return payload["choices"][0]["message"]["content"]
+    choice = payload["choices"][0]
+    content = choice["message"].get("content") or ""
+    if not content.strip():
+        # 推理型模型（reasoning_content 计入 completion 上限）思考耗尽 token 时正文为空
+        finish = choice.get("finish_reason")
+        usage = payload.get("usage", {})
+        raise RuntimeError(
+            f"LLM returned empty content (finish_reason={finish}, "
+            f"completion_tokens={usage.get('completion_tokens')}, "
+            f"reasoning_tokens={usage.get('completion_tokens_details', {}).get('reasoning_tokens')})"
+        )
+    return content
 
 
 def load_lineage() -> list[dict]:
