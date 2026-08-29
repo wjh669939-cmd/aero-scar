@@ -52,6 +52,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--output-root", type=Path, default=None)
     parser.add_argument(
+        "--o2-event-flags",
+        type=Path,
+        default=None,
+        help="转发给 forecast 两阶段的 O2 事件标志 CSV（train-only；缺省行为不变）",
+    )
+    parser.add_argument(
         "--reuse-pretrain-checkpoint",
         type=Path,
         default=None,
@@ -306,6 +312,9 @@ def main() -> None:
         )
     require_file(new_pretrain_checkpoint)
 
+    forecast_extra = (
+        ["--o2-event-flags", str(args.o2_event_flags)] if args.o2_event_flags else []
+    )
     common_downstream = [
         "--epochs",
         str(args.downstream_epochs),
@@ -335,6 +344,7 @@ def main() -> None:
             "--scratch-lr",
             "1e-4",
             *common_downstream,
+            *forecast_extra,
             "--min-delta",
             "1e-5",
             "--output-dir",
@@ -356,6 +366,7 @@ def main() -> None:
             "--head-lr",
             "1e-4",
             *common_downstream,
+            *forecast_extra,
             "--min-delta",
             "1e-5",
             "--output-dir",
