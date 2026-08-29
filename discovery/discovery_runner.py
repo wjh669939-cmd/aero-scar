@@ -249,20 +249,31 @@ def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+# LLM 端点与模型：由 CLI 配置（--model/--api-base），代码不写死具体型号。
+# 每次调用把服务端实际返回的模型名收进 _SERVED_MODELS，随 trial 记录入 lineage
+# （审计底账：论文须能如实交代 LLM 臂各阶段用了什么模型）。
+LLM_MODEL = "deepseek-v4-pro"
+LLM_API_BASE = "https://api.deepseek.com"
+_SERVED_MODELS: set[str] = set()
+
+
 def call_llm(api_key: str, messages: list[dict], temperature: float, max_tokens: int = 8000) -> str:
     body = json.dumps({
-        "model": "deepseek-chat",
+        "model": LLM_MODEL,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
     }).encode("utf-8")
     req = urllib.request.Request(
-        "https://api.deepseek.com/chat/completions",
+        f"{LLM_API_BASE}/chat/completions",
         data=body,
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
     )
     with urllib.request.urlopen(req, timeout=300) as resp:
         payload = json.loads(resp.read().decode("utf-8"))
+    served = payload.get("model")
+    if served:
+        _SERVED_MODELS.add(str(served))
     return payload["choices"][0]["message"]["content"]
 
 
@@ -839,6 +850,8 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
         (trial_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
         append_lineage({
             "event": "trial_done", "trial_id": trial["trial_id"], "axis": axis,
+            "llm_model_config": LLM_MODEL,
+            "llm_model_served": sorted(_SERVED_MODELS),
             "action_id": trial["action_id"], "parent_trial": parent_trial,
             "arm_category": "llm_free" if trial.get("is_free_proposal") else "llm_template",
             "non_expressibility": trial.get("non_expressibility", ""),
@@ -867,7 +880,14 @@ def main() -> int:
     ap.add_argument("--start-seq", type=int, default=0)
     ap.add_argument("--parent-trial", default="parent-seed42-formal",
                     help="配对基准：默认冻结 parent；传已完成 trial_id 则形成父子链")
+    ap.add_argument("--model", default=None,
+                    help="LLM 模型名（默认 deepseek-v4-pro；切换须先于任何 screen_pass 并入 lineage 留痕）")
+    ap.add_argument("--api-base", default=None, help="OpenAI 兼容端点根地址")
     args = ap.parse_args()
+    if args.model:
+        globals()["LLM_MODEL"] = args.model
+    if args.api_base:
+        globals()["LLM_API_BASE"] = args.api_base.rstrip("/")
 
     DISCOVERY.mkdir(parents=True, exist_ok=True)
     # 冒烟闸门自检：基线文件必须通过，否则是闸门自身的假张量形状错了
