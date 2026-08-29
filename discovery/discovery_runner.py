@@ -302,7 +302,7 @@ LLM_API_BASE = "https://api.deepseek.com"
 _SERVED_MODELS: set[str] = set()
 
 
-def call_llm(api_key: str, messages: list[dict], temperature: float, max_tokens: int = 32000) -> str:
+def call_llm(api_key: str, messages: list[dict], temperature: float, max_tokens: int = 100000) -> str:
     body = json.dumps({
         "model": LLM_MODEL,
         "messages": messages,
@@ -314,7 +314,7 @@ def call_llm(api_key: str, messages: list[dict], temperature: float, max_tokens:
         data=body,
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
     )
-    with urllib.request.urlopen(req, timeout=600) as resp:
+    with urllib.request.urlopen(req, timeout=1500) as resp:
         payload = json.loads(resp.read().decode("utf-8"))
     served = payload.get("model")
     if served:
@@ -361,6 +361,15 @@ for n_slots in (5, 4):
     assert out["node_mask"].dtype == torch.bool
     out2 = m.build_classification_inputs(runway, mask, exo_cat, exo_cont)
     assert out2["x"].shape == (96, n_slots, 2), f"cls x shape {out2['x'].shape}"
+    # 跑道几何参数（B3 冻结）：必须接受含 NaN 的槽位朝向数组且形状不变
+    hd = np.array([0.0, 10.0, 170.0] + [float("nan")] * (n_slots - 3), dtype=np.float32)
+    out3 = m.build_forecast_inputs(runway, mask, exo_cat, exo_cont, norm_stats=None,
+                                   runway_axis_heading_deg=hd)
+    assert out3["x"].shape == (96, n_slots, 2), f"heading-arg x shape {out3['x'].shape}"
+    assert torch.isfinite(out3["x"]).all(), "heading arg must not inject NaN into x"
+    out4 = m.build_classification_inputs(runway, mask, exo_cat, exo_cont,
+                                         runway_axis_heading_deg=hd)
+    assert out4["x"].shape == (96, n_slots, 2)
 enc = m.AllowedContextEncoder(sky_known_max=5)
 cat = {"sky_condition": torch.tensor([1, 2]), "has_gust": torch.tensor([0, 1]), "is_cavok": torch.tensor([1, 0])}
 z = enc(cat, torch.rand(2, 3))
