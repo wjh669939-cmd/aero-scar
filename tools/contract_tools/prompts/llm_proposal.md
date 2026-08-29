@@ -57,3 +57,10 @@ Answer with ONE JSON object and nothing else:
   "patch_plan": "<2-4 sentences: what code/config change will be made>",
   "non_expressibility": "<REQUIRED for free proposals: why templates cannot express this>"
 }
+
+Format note for non_expressibility (form only, the content is yours): state
+(a) which existing templates come closest, and (b) the specific representational
+gap — a different target region, functional form, or coupling that the template
+parameter space cannot reach. Minimum 30 characters. A proposal whose mechanism
+is substantively expressible by an active template will be rejected by a
+mechanical equivalence check.

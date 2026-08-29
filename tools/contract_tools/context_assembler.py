@@ -76,23 +76,64 @@ def assert_no_hidden_tokens(text: str) -> None:
         raise HiddenInfoLeak(f"prompt context contains hidden tokens: {hits}")
 
 
+_DELTA_LABELS = (
+    ("forecast_scratch.RMSE_macro_norm", "fc_scratch RMSE"),
+    ("forecast_scratch.MAE_macro_norm", "fc_scratch MAE"),
+    ("forecast_pretrained.RMSE_macro_norm", "fc_pretrained RMSE"),
+    ("tier2_primary_pretrained_vs_parent_scratch.RMSE_macro_norm", "tier2_primary(pre_vs_parent_scratch) RMSE"),
+    ("classification_scratch.classification_macro_f1", "cls_scratch macroF1"),
+    ("classification_pretrained.classification_macro_f1", "cls_pretrained macroF1"),
+    ("classification_pretrained.hazard_class_f1", "cls_pretrained hazardF1"),
+)
+
+
+def _delta_table(deltas: dict) -> str:
+    """配对 Δ 的对齐单行表（负值 = 改善，RMSE/MAE 类；正值 = 改善，F1 类）。"""
+    cells = []
+    for key, label in _DELTA_LABELS:
+        value = deltas.get(key)
+        if isinstance(value, (int, float)):
+            cells.append(f"{label} {value:+.6f}")
+    return " | ".join(cells) if cells else "(no paired deltas)"
+
+
 def summarize_lineage(records: list[dict], max_records: int = 10) -> str:
-    """result 记录 → 每条一行的谱系摘要（只取可见字段，不透传原始 metrics 全文）。"""
-    lines = []
+    """lineage 记录 → 谱系摘要（如实呈现裁决/配对 Δ/审计注记；不透传原始 metrics 全文）。
+
+    2026-08-29 修复：旧版读取的字段名（verdict/primary_metric）与 runner 实际写入的
+    记录（hypothesis_verdict/paired_delta_vs_parent）不匹配，导致此前提示词中的谱系
+    摘要恒为 pending/n/a——LLM 从未看到过任何配对结果。本版按真实记录结构渲染。
+    """
+    lines: list[str] = []
     for rec in records[-max_records:]:
-        primary = rec.get("primary_metric", {})
-        lines.append(
-            "- trial={id} axis={axis} action={action} verdict={verdict} "
-            "primary[{name}]={value} note={note}".format(
-                id=rec.get("trial_id", "?"),
-                axis=rec.get("axis", "?"),
-                action=rec.get("action_id", "?"),
-                verdict=rec.get("verdict", "pending"),
-                name=primary.get("name", "RMSE_macro_norm"),
-                value=primary.get("value", "n/a"),
-                note=(rec.get("verdict_note") or "")[:120],
+        event = rec.get("event")
+        tid = rec.get("trial_id", "?")
+        if event == "trial_done":
+            verdict = rec.get("hypothesis_verdict") or "pending"
+            lines.append(
+                f"- trial={tid} axis={rec.get('axis', '?')} action={rec.get('action_id', '?')} "
+                f"arm={rec.get('arm_category', '?')} status={rec.get('status', '?')} verdict={verdict}"
             )
-        )
+            basis = (rec.get("verdict_basis") or "")[:160]
+            if basis:
+                lines.append(f"    basis: {basis}")
+            deltas = rec.get("paired_delta_vs_parent") or {}
+            lines.append(f"    paired-delta vs parent: {_delta_table(deltas)}")
+            hyp = (rec.get("hypothesis") or "")[:160]
+            if hyp:
+                lines.append(f"    hypothesis: {hyp}")
+        elif event == "verdict_backfill":
+            lines.append(
+                f"- verdict update: trial={tid} -> {rec.get('verdict', '?')} "
+                f"(policy {rec.get('policy_version', 'v1')}): {(rec.get('verdict_basis') or '')[:140]}"
+            )
+        elif event == "audit_note":
+            lines.append(f"- AUDIT NOTE trial={tid}: {(rec.get('note') or '')[:300]}")
+        elif event in ("smoke_rejected", "proposal_rejected", "codegen_rejected"):
+            reason = (rec.get("smoke_error") or "; ".join(rec.get("errors") or []) or "")[:140]
+            lines.append(f"- gate-rejected ({event}) trial={tid} axis={rec.get('axis', '?')}: {reason}")
+        elif event == "driver_error":
+            lines.append(f"- driver_error axis={rec.get('axis', '?')}: {(rec.get('error') or '')[:100]}")
     return "\n".join(lines) if lines else "- (no prior trials in this campaign)"
 
 
@@ -124,7 +165,7 @@ def assemble_proposal_prompt(
     registry_path: Path,
     lineage_records: list[dict],
     failure_slices_summary: str,
-    max_lineage: int = 10,
+    max_lineage: int = 18,
 ) -> str:
     if axis not in INTERFACE_CONTRACTS:
         raise ValueError(f"unknown axis for prompt assembly: {axis}")

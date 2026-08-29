@@ -220,6 +220,12 @@ REUSE_PRETRAIN_CKPTS = {
     5519: "/root/autodl-tmp/aerowf_downstream_v2/results/full_pipeline/seed5519_v2/pretrain/checkpoints/best_model.pth",
 }
 
+# O2 事件标志（B3 冻结交付，HAZARD-only，train-only；2026-08-29 受理）
+O2_EVENT_FLAGS_CSV = (
+    "/root/autodl-tmp/aerowf_delivery/o2_event_slice_v1/AeroWF_O2_MODEL_HANDOFF_v1/"
+    "o2_hazard_event_flags_train_v1.csv"
+)
+
 # parent seed42 参考（C evaluator v1.0.2，2026-08-27 落盘于 discovery/parent_refs/）
 PARENT_REFS = {
     "forecast_scratch": {"RMSE_macro_norm": 0.04847144659294747, "MAE_macro_norm": 0.0254475019647884},
@@ -332,6 +338,13 @@ logits = torch.randn(8, 3, requires_grad=True)
 label = torch.tensor([0, 1, 2, 0, 1, 2, 0, -100])
 closs = m.classification_loss(logits, label, class_weights=w)
 assert closs.dim() == 0 and torch.isfinite(closs); closs.backward()
+# O2 通管（2026-08-29）：forecast_loss 必须接受事件标志 kwargs（基线忽略之）
+pred = torch.rand(4, 5, 3, 2); target = torch.rand(4, 5, 3, 2)
+node_mask = torch.tensor([[1, 1, 1, 1, 0]] * 4, dtype=torch.bool)
+em = torch.tensor([[True, False, False]] * 4)
+ea = torch.ones(4, 3, dtype=torch.bool)
+loss_ev = m.forecast_loss(pred, target, node_mask, event_mask=em, event_available=ea)
+assert loss_ev.dim() == 0 and torch.isfinite(loss_ev), "event-kwargs call failed"
 print("SMOKE_OK")
 """,
     "objective_tier2": """
@@ -431,39 +444,45 @@ Answer with the complete replacement method in ONE ```python code block and noth
 else. Top-level indentation of the method in your block may be zero; it will be
 re-indented for the class body automatically."""
     errors: list[str] = []
+    messages: list[dict] = [{"role": "user", "content": prompt}]
     for attempt in range(2):
         try:
-            raw = call_llm(api_key, [{"role": "user", "content": prompt}], temperature=0.2)
+            raw = call_llm(api_key, messages, temperature=0.2)
         except Exception as exc:  # noqa: BLE001
             errors.append(f"tier2 codegen LLM call failed: {exc}")
             continue
+        err: str | None = None
+        new_source = None
         m = re.search(r"```python\n(.*?)```", raw, re.DOTALL)
         if not m:
-            errors.append("tier2 codegen output missing ```python block")
-            continue
-        try:
-            assert_no_hidden_tokens(m.group(1))
-        except Exception as exc:  # noqa: BLE001
-            errors.append(f"hidden token in tier2 codegen output: {exc}")
-            continue
-        new_source, splice_err = splice_tier2(current_source, m.group(1))
-        if splice_err:
-            errors.append(splice_err)
-            continue
-        if is_noop_edit(current_source, new_source):
-            errors.append("no-op edit: change is comments/docstring only, patch_plan not implemented")
-            continue
-        if FORBIDDEN_IMPORT_PAT.search(new_source) and not FORBIDDEN_IMPORT_PAT.search(current_source):
-            errors.append("forbidden import introduced by tier2 edit")
-            continue
-        tmp = Path("/tmp/_codegen_check.py")
-        tmp.write_text(new_source, encoding="utf-8")
-        try:
-            py_compile.compile(str(tmp), doraise=True)
-        except py_compile.PyCompileError as exc:
-            errors.append(f"py_compile failed: {exc}")
-            continue
-        return new_source, errors
+            err = "tier2 codegen output missing ```python block"
+        else:
+            try:
+                assert_no_hidden_tokens(m.group(1))
+            except Exception as exc:  # noqa: BLE001
+                err = f"hidden token in tier2 codegen output: {exc}"
+            if err is None:
+                new_source, err = splice_tier2(current_source, m.group(1))
+            if err is None and is_noop_edit(current_source, new_source):
+                err = "no-op edit: change is comments/docstring only, patch_plan not implemented"
+            if err is None and FORBIDDEN_IMPORT_PAT.search(new_source) and not FORBIDDEN_IMPORT_PAT.search(current_source):
+                err = "forbidden import introduced by tier2 edit"
+            if err is None:
+                tmp = Path("/tmp/_codegen_check.py")
+                tmp.write_text(new_source, encoding="utf-8")
+                try:
+                    py_compile.compile(str(tmp), doraise=True)
+                except py_compile.PyCompileError as exc:
+                    err = f"py_compile failed: {exc}"
+        if err is None:
+            return new_source, errors
+        errors.append(err)
+        messages.append({"role": "assistant", "content": raw})
+        messages.append({"role": "user", "content": (
+            f"Your previous code edit was REJECTED before training.\nReason: {err}\n"
+            "Produce a corrected version implementing the same approved patch_plan, "
+            "in ONE ```python block and nothing else."
+        )})
     return None, errors
 
 
@@ -495,40 +514,48 @@ Current file content:
 
 Answer with the complete new file content in ONE ```python code block and nothing else."""
     errors: list[str] = []
+    messages: list[dict] = [{"role": "user", "content": prompt}]
     for attempt in range(2):
         try:
-            raw = call_llm(api_key, [{"role": "user", "content": prompt}], temperature=0.2)
+            raw = call_llm(api_key, messages, temperature=0.2)
         except Exception as exc:  # noqa: BLE001
             errors.append(f"codegen LLM call failed: {exc}")
             continue
+        err: str | None = None
+        source = None
         m = re.search(r"```python\n(.*?)```", raw, re.DOTALL)
         if not m:
-            errors.append("codegen output missing ```python block")
-            continue
-        source = m.group(1)
-        try:
-            assert_no_hidden_tokens(source)
-        except Exception as exc:  # noqa: BLE001
-            errors.append(f"hidden token in codegen output: {exc}")
-            continue
-        missing = [sig for sig in REQUIRED_SIGNATURES[axis] if sig not in source]
-        if missing:
-            errors.append(f"missing required signatures: {missing}")
-            continue
-        if is_noop_edit(current_source, source):
-            errors.append("no-op edit: change is comments/docstring only, patch_plan not implemented")
-            continue
-        if FORBIDDEN_IMPORT_PAT.search(source):
-            errors.append("forbidden import of locked/other-axis module")
-            continue
-        tmp = Path("/tmp/_codegen_check.py")
-        tmp.write_text(source, encoding="utf-8")
-        try:
-            py_compile.compile(str(tmp), doraise=True)
-        except py_compile.PyCompileError as exc:
-            errors.append(f"py_compile failed: {exc}")
-            continue
-        return source, errors
+            err = "codegen output missing ```python block"
+        else:
+            source = m.group(1)
+            try:
+                assert_no_hidden_tokens(source)
+            except Exception as exc:  # noqa: BLE001
+                err = f"hidden token in codegen output: {exc}"
+            if err is None:
+                missing = [sig for sig in REQUIRED_SIGNATURES[axis] if sig not in source]
+                if missing:
+                    err = f"missing required signatures: {missing}"
+            if err is None and is_noop_edit(current_source, source):
+                err = "no-op edit: change is comments/docstring only, patch_plan not implemented"
+            if err is None and FORBIDDEN_IMPORT_PAT.search(source):
+                err = "forbidden import of locked/other-axis module"
+            if err is None:
+                tmp = Path("/tmp/_codegen_check.py")
+                tmp.write_text(source, encoding="utf-8")
+                try:
+                    py_compile.compile(str(tmp), doraise=True)
+                except py_compile.PyCompileError as exc:
+                    err = f"py_compile failed: {exc}"
+        if err is None:
+            return source, errors
+        errors.append(err)
+        messages.append({"role": "assistant", "content": raw})
+        messages.append({"role": "user", "content": (
+            f"Your previous file edit was REJECTED before training.\nReason: {err}\n"
+            "Produce a corrected complete file implementing the same approved patch_plan, "
+            "in ONE ```python block and nothing else."
+        )})
     return None, errors
 
 
@@ -678,26 +705,40 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
 
     trial = None
     proposal_errors: list[str] = []
+    # 多轮重试：把上一轮的拒绝原因如实回传（过程反馈，不含任何机制方向提示）
+    messages: list[dict] = [{"role": "user", "content": prompt}]
     for attempt in range(3):
-        raw = call_llm(api_key, [{"role": "user", "content": prompt}], temperature=0.7)
+        raw = call_llm(api_key, messages, temperature=0.7)
         parsed = parse_llm_proposal(raw, trial_seq=trial_seq, parent_trial=parent_trial, screening_seed=seed)
+        rejection_reason: str | None = None
         if parsed.ok and forced and not parsed.trial_record["is_free_proposal"]:
-            proposal_errors.append(
+            rejection_reason = (
                 f"强制自由轮拒绝模板提案: {parsed.trial_record['action_id']}（{forced_reason}）"
             )
-            continue
-        if parsed.ok and parsed.trial_record["axis"] == axis:
+        elif parsed.ok and parsed.trial_record["axis"] == axis:
             equiv = fake_free_equivalent(parsed.trial_record, registry["actions"], axis)
             if equiv:
-                proposal_errors.append(
+                rejection_reason = (
                     f"假自由拦截（22 文档规则 2）: {parsed.trial_record['action_id']} "
                     f"与模板 {equiv} 实质等价，应改用该模板或提出模板外机制"
                 )
-                continue
-            trial = parsed.trial_record
-            trial["forced_free_round"] = forced
-            break
-        proposal_errors.extend(parsed.errors or [f"axis mismatch: {parsed.trial_record.get('axis')}"])
+            else:
+                trial = parsed.trial_record
+                trial["forced_free_round"] = forced
+                break
+        else:
+            rejection_reason = "; ".join(
+                (parsed.errors or [f"axis mismatch: {parsed.trial_record.get('axis')}"])[:3]
+            )
+        proposal_errors.append(rejection_reason)
+        # 过程反馈：如实回传拒绝原因（不含任何机制方向内容），让重试有的放矢
+        messages.append({"role": "assistant", "content": raw})
+        messages.append({"role": "user", "content": (
+            f"Your previous proposal was REJECTED by a mechanical rule check.\n"
+            f"Reason: {rejection_reason}\n"
+            "Submit a new proposal in the same strict JSON format that complies with the rule. "
+            "Do not repeat the rejected proposal."
+        )})
     if trial is None:
         rec = {"event": "proposal_rejected", "axis": axis, "trial_seq": trial_seq,
                "forced_free_round": forced,
@@ -799,6 +840,9 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
         extra_args: list[str] = []
         if axis != TIER2_AXIS and seed in REUSE_PRETRAIN_CKPTS:
             extra_args = ["--reuse-pretrain-checkpoint", REUSE_PRETRAIN_CKPTS[seed]]
+        if axis == "objective_tier1":
+            # O2 数据前置（B3 冻结交付）：train batch 携带事件标志；基线损失忽略，行为不变
+            extra_args += ["--o2-event-flags", O2_EVENT_FLAGS_CSV]
         outcome = run_pipeline(cfg, seed=seed,
                                run_id=f"disc_{trial['trial_id'].replace('-', '_')}_seed{seed}",
                                extra_args=extra_args)
