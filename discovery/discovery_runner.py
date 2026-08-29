@@ -350,26 +350,28 @@ import importlib.util, sys
 import numpy as np, torch
 spec = importlib.util.spec_from_file_location("trial_mod", sys.argv[1])
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-# 槽位数用 4/5 两档，避开与时距(3)/分量(2)同形导致维度猜测型 bug 逃逸
+# 真实布局 (n_slots, 96, 11)（2026-08-29 修正：旧假张量 (96,slots,2) 与冻结数据不符，
+# 曾放行按错误布局写的编辑进真实训练崩溃——llm-rep-106/107）。槽位 4/5 两档防维度猜测。
 for n_slots in (5, 4):
-    runway = np.random.rand(96, n_slots, 2).astype(np.float32)
+    runway = np.random.rand(n_slots, 96, 11).astype(np.float32)
     mask = np.array([True] * (n_slots - 1) + [False])
     exo_cat = {"weather_code": 2, "sky_condition": 1, "has_gust": 0, "is_cavok": 1}
     exo_cont = np.array([0.5, 0.3, 0.0], dtype=np.float32)
     out = m.build_forecast_inputs(runway, mask, exo_cat, exo_cont, norm_stats=None)
-    assert out["x"].shape == (96, n_slots, 2), f"forecast x shape {out['x'].shape}"
+    assert out["x"].shape == (n_slots, 96, 11), f"forecast x shape {out['x'].shape}"
     assert out["node_mask"].dtype == torch.bool
+    assert torch.isfinite(out["x"]).all()
     out2 = m.build_classification_inputs(runway, mask, exo_cat, exo_cont)
-    assert out2["x"].shape == (96, n_slots, 2), f"cls x shape {out2['x'].shape}"
-    # 跑道几何参数（B3 冻结）：必须接受含 NaN 的槽位朝向数组且形状不变
-    hd = np.array([0.0, 10.0, 170.0] + [float("nan")] * (n_slots - 3), dtype=np.float32)
+    assert out2["x"].shape == (n_slots, 96, 11), f"cls x shape {out2['x'].shape}"
+    # 跑道几何参数（B3 冻结）：必须接受含 NaN 的槽位朝向数组且形状/有限性不变
+    hd = np.array([0.0, 10.0, 170.0] + [float("nan")] * (n_slots - 3), dtype=np.float32)[:n_slots]
     out3 = m.build_forecast_inputs(runway, mask, exo_cat, exo_cont, norm_stats=None,
                                    runway_axis_heading_deg=hd)
-    assert out3["x"].shape == (96, n_slots, 2), f"heading-arg x shape {out3['x'].shape}"
+    assert out3["x"].shape == (n_slots, 96, 11), f"heading-arg x shape {out3['x'].shape}"
     assert torch.isfinite(out3["x"]).all(), "heading arg must not inject NaN into x"
     out4 = m.build_classification_inputs(runway, mask, exo_cat, exo_cont,
                                          runway_axis_heading_deg=hd)
-    assert out4["x"].shape == (96, n_slots, 2)
+    assert out4["x"].shape == (n_slots, 96, 11)
 enc = m.AllowedContextEncoder(sky_known_max=5)
 cat = {"sky_condition": torch.tensor([1, 2]), "has_gust": torch.tensor([0, 1]), "is_cavok": torch.tensor([1, 0])}
 z = enc(cat, torch.rand(2, 3))
