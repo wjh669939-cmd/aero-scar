@@ -302,7 +302,7 @@ LLM_API_BASE = "https://api.deepseek.com"
 _SERVED_MODELS: set[str] = set()
 
 
-def call_llm(api_key: str, messages: list[dict], temperature: float, max_tokens: int = 8000) -> str:
+def call_llm(api_key: str, messages: list[dict], temperature: float, max_tokens: int = 16000) -> str:
     body = json.dumps({
         "model": LLM_MODEL,
         "messages": messages,
@@ -501,11 +501,11 @@ Answer with the complete new file content in ONE ```python code block and nothin
             continue
         err: str | None = None
         source = None
-        m = re.search(r"```python\n(.*?)```", raw, re.DOTALL)
-        if not m:
-            err = "codegen output missing ```python block"
+        block = extract_code_block(raw)
+        if block is None:
+            err = "codegen output missing/unclosed code fence (possible truncation)"
         else:
-            source = m.group(1)
+            source = block
             try:
                 assert_no_hidden_tokens(source)
             except Exception as exc:  # noqa: BLE001
@@ -580,16 +580,16 @@ re-indented for the class body automatically."""
             continue
         err: str | None = None
         new_source = None
-        m = re.search(r"```python\n(.*?)```", raw, re.DOTALL)
-        if not m:
-            err = "tier2 codegen output missing ```python block"
+        block2 = extract_code_block(raw)
+        if block2 is None:
+            err = "tier2 codegen output missing/unclosed code fence (possible truncation)"
         else:
             try:
-                assert_no_hidden_tokens(m.group(1))
+                assert_no_hidden_tokens(block2)
             except Exception as exc:  # noqa: BLE001
                 err = f"hidden token in tier2 codegen output: {exc}"
             if err is None:
-                new_source, err = splice_tier2(current_source, m.group(1))
+                new_source, err = splice_tier2(current_source, block2)
             if err is None and is_noop_edit(current_source, new_source):
                 err = "no-op edit: change is comments/docstring only, patch_plan not implemented"
             if err is None and FORBIDDEN_IMPORT_PAT.search(new_source) and not FORBIDDEN_IMPORT_PAT.search(current_source):
@@ -611,6 +611,15 @@ re-indented for the class body automatically."""
             "in ONE ```python block and nothing else."
         )})
     return None, errors
+
+
+_CODE_FENCE_PAT = re.compile(r"```(?:python|py)?\s*\n(.*?)```", re.DOTALL)
+
+
+def extract_code_block(raw: str) -> str | None:
+    """提取代码块：接受 ```python/```py/裸 ``` 围栏。无闭合围栏（截断）返回 None。"""
+    m = _CODE_FENCE_PAT.search(raw)
+    return m.group(1) if m else None
 
 
 def gen_code_edit(api_key: str, axis: str, trial: dict, current_source: str,
@@ -654,11 +663,11 @@ Answer with the complete new file content in ONE ```python code block and nothin
             continue
         err: str | None = None
         source = None
-        m = re.search(r"```python\n(.*?)```", raw, re.DOTALL)
-        if not m:
-            err = "codegen output missing ```python block"
+        block = extract_code_block(raw)
+        if block is None:
+            err = "codegen output missing/unclosed code fence (possible truncation)"
         else:
-            source = m.group(1)
+            source = block
             try:
                 assert_no_hidden_tokens(source)
             except Exception as exc:  # noqa: BLE001
@@ -681,6 +690,8 @@ Answer with the complete new file content in ONE ```python code block and nothin
         if err is None:
             return source, errors
         errors.append(err)
+        if trial_dir is not None:
+            (trial_dir / f"codegen_rejected_attempt{attempt}.txt").write_text(raw, encoding="utf-8")
         messages.append({"role": "assistant", "content": raw})
         messages.append({"role": "user", "content": (
             f"Your previous file edit was REJECTED before training.\nReason: {err}\n"
@@ -878,6 +889,13 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
         return rec
 
     trial_dir = DISCOVERY / "trials" / trial["trial_id"]
+    if trial_dir.exists() and any(trial_dir.iterdir()):
+        rec = {"event": "driver_error", "axis": axis, "trial_seq": trial_seq,
+               "error": (f"trial_id {trial['trial_id']} 已被占用（目录非空）——"
+                         "--start-seq 不得回退复用，请改用未用序号（33 号手册铁律 1）"),
+               "at": now_utc()}
+        append_lineage(rec)
+        return rec
     trial_dir.mkdir(parents=True, exist_ok=True)
     (trial_dir / "trial.json").write_text(json.dumps(trial, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -922,9 +940,8 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
         )
         try:
             raw = call_llm(api_key, [{"role": "user", "content": repair_prompt}], temperature=0.2)
-            m = re.search(r"```python\n(.*?)```", raw, re.DOTALL)
-            if m:
-                block = m.group(1)
+            block = extract_code_block(raw)
+            if block is not None:
                 assert_no_hidden_tokens(block)
                 candidate = None
                 if axis == TIER2_AXIS and not tier2_secondary:
