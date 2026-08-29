@@ -67,12 +67,51 @@ FORBIDDEN_IMPORT_PAT = re.compile(
     r"^\s*(?:import|from)\s+(?:aerowf_|trial_features|trial_objective)", re.MULTILINE
 )
 
-# ---- objective_tier2：函数级替换协议 ----
-# axis_lock（DEC-002）备注 unified_model.py 允改范围限 unified_pretrain_forward。
-# 执行方式：LLM 只输出该方法的替换实现，驱动机械拼接回原文件——函数段之外
-# 逐字节不可变由拼接构造保证（比整文件重写 + 事后 diff 审计更强的机器执法）。
+# ---- objective_tier2：多文件编辑协议（2026-08-29 扩展）----
+# axis_lock（DEC-002）允许三个文件；此前驱动只实现了 unified_model.py 的函数级拼接，
+# llm-obj-302 的合法自由提案（physics_distance.py 内 per-sample 风速加权）因此被卡死
+# （codegen 面对矛盾指令拒绝产码）。现按 axis_lock 注册面扩展：
+#   unified_model.py     → 函数级拼接（unified_pretrain_forward，方法外机器保证不变）
+#   physics_distance.py  → 整文件重写协议（380 行，签名表约束）
+#   masked.py            → 整文件重写协议（270 行，签名表约束；mask_ratio 协议仍冻结）
+# 每 trial 仍只许编辑一个文件（由提案 editable_paths 声明）。
 TIER2_AXIS = "objective_tier2"
 TIER2_FUNC = "unified_pretrain_forward"
+TIER2_FILES = {
+    "unified_model.py": Path(AEROWF_REPO) / "models/AirFM/unified_model.py",
+    "physics_distance.py": Path(AEROWF_REPO) / "models/AirFM/physics_distance.py",
+    "masked.py": Path(AEROWF_REPO) / "models/AirFM/masked.py",
+}
+TIER2_SECONDARY_SIGNATURES = {
+    "physics_distance.py": [
+        "class PhysicsDistanceComputer",
+        "def compute_physical_distances(",
+        "def forward(",
+    ],
+    "masked.py": [
+        "def generate_hybrid_mask(",
+        "def apply_mask(",
+        "def masked_mse_loss(",
+        "class ReconstructionDecoder",
+    ],
+}
+
+
+def resolve_tier2_target(trial: dict) -> tuple[Path, str]:
+    """按提案 editable_paths（显式声明）路由目标文件；默认 unified_model.py。
+
+    注意只看 editable_paths——patch_plan 文本提及某文件不构成编辑声明
+    （llm-obj-300 的 patch_plan 提到 physics_distance loss 但实际编辑面是
+    unified_pretrain_forward 方法）。"""
+    declared = " ".join(str(p) for p in (trial.get("editable_paths") or []))
+    # 声明含 unified_model.py 即走主协议（方法拼接）；仅当未声明 unified_model
+    # 且显式声明二级文件时才走整文件协议（llm-obj-300/301 声明两文件、实际改方法）。
+    if "unified_model.py" in declared or not declared:
+        return TIER2_FILES["unified_model.py"], "unified_model.py"
+    for name in ("physics_distance.py", "masked.py"):
+        if name in declared:
+            return TIER2_FILES[name], name
+    return TIER2_FILES["unified_model.py"], "unified_model.py"
 
 
 def _tier2_func_span(source: str) -> tuple[int, int]:
@@ -404,12 +443,100 @@ def functional_smoke(axis: str, source_path: Path) -> str | None:
     return (proc.stderr or proc.stdout).strip()[-600:]
 
 
+def tier2_secondary_smoke(target: Path, edit_path: Path) -> str | None:
+    """tier2 二级文件（physics_distance/masked）冒烟：临时安装编辑 → 跑 tier2 全路径
+    冒烟（unified_model 会 import 安装后的依赖）→ 无条件还原。返回错误或 None。"""
+    backup = target.with_suffix(".py.smoke_backup")
+    shutil.copy2(target, backup)
+    try:
+        target.write_text(edit_path.read_text(encoding="utf-8"), encoding="utf-8")
+        return functional_smoke(TIER2_AXIS, TIER2_FILES["unified_model.py"])
+    finally:
+        shutil.copy2(backup, target)
+        backup.unlink()
+
+
 def stderr_tail(output_root_base: Path, run_id: str, n: int = 12) -> str:
     p = output_root_base / f"{run_id}.stderr"
     if not p.exists():
         return ""
     lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
     return "\n".join(lines[-n:])
+
+
+def gen_tier2_secondary_edit(api_key: str, trial: dict, current_source: str,
+                             target_name: str, trial_dir: Path | None = None) -> tuple[str | None, list[str]]:
+    """tier2 二级文件（physics_distance.py / masked.py）整文件重写协议。"""
+    signatures = TIER2_SECONDARY_SIGNATURES[target_name]
+    prompt = f"""You are the code-editing module of a closed-loop auto-research system.
+Your approved research proposal for this trial:
+{json.dumps({k: trial[k] for k in ('hypothesis', 'patch_plan', 'expected_effect', 'falsification')}, ensure_ascii=False, indent=1)}
+
+You must implement the patch_plan by rewriting ONE file completely:
+models/AirFM/{target_name} (pretraining objective axis, axis-lock approved).
+
+INTERFACE CONTRACT (must hold, violating = trial fails before training):
+- Keep every public signature present in the current file, including at least:
+  {signatures}
+- The soft-DTW CUDA kernel (soft_dtw_cuda.py) is locked: you may change how it is
+  invoked or weighted, not the kernel, and must not import new external modules.
+- mask_ratio (masked fraction) protocol is frozen; do not change its semantics.
+- Tensor shapes and dtypes returned by each public function must stay identical.
+- Pure-Python + numpy + torch only. No file I/O, no network, no subprocess.
+- The change must implement exactly the approved patch_plan, nothing else.
+
+Current file content:
+```python
+{current_source}
+```
+
+Answer with the complete new file content in ONE ```python code block and nothing else."""
+    errors: list[str] = []
+    messages: list[dict] = [{"role": "user", "content": prompt}]
+    for attempt in range(2):
+        try:
+            raw = call_llm(api_key, messages, temperature=0.2)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"tier2 secondary codegen LLM call failed: {exc}")
+            continue
+        err: str | None = None
+        source = None
+        m = re.search(r"```python\n(.*?)```", raw, re.DOTALL)
+        if not m:
+            err = "codegen output missing ```python block"
+        else:
+            source = m.group(1)
+            try:
+                assert_no_hidden_tokens(source)
+            except Exception as exc:  # noqa: BLE001
+                err = f"hidden token in codegen output: {exc}"
+            if err is None:
+                missing = [sig for sig in signatures if sig not in source]
+                if missing:
+                    err = f"missing required signatures: {missing}"
+            if err is None and is_noop_edit(current_source, source):
+                err = "no-op edit: change is comments/docstring only, patch_plan not implemented"
+            if err is None and FORBIDDEN_IMPORT_PAT.search(source):
+                err = "forbidden import of locked/other-axis module"
+            if err is None:
+                tmp = Path("/tmp/_codegen_check.py")
+                tmp.write_text(source, encoding="utf-8")
+                try:
+                    py_compile.compile(str(tmp), doraise=True)
+                except py_compile.PyCompileError as exc:
+                    err = f"py_compile failed: {exc}"
+        if err is None:
+            return source, errors
+        errors.append(err)
+        if trial_dir is not None:
+            (trial_dir / f"codegen_rejected_attempt{attempt}.txt").write_text(raw, encoding="utf-8")
+        messages.append({"role": "assistant", "content": raw})
+        messages.append({"role": "user", "content": (
+            f"Your previous file edit was REJECTED before training.\nReason: {err}\n"
+            "Produce a corrected complete file implementing the same approved patch_plan, "
+            "in ONE ```python block and nothing else."
+        )})
+    return None, errors
 
 
 def gen_tier2_edit(api_key: str, trial: dict, current_source: str) -> tuple[str | None, list[str]]:
@@ -486,9 +613,13 @@ re-indented for the class body automatically."""
     return None, errors
 
 
-def gen_code_edit(api_key: str, axis: str, trial: dict, current_source: str) -> tuple[str | None, list[str]]:
+def gen_code_edit(api_key: str, axis: str, trial: dict, current_source: str,
+                  tier2_target_name: str | None = None,
+                  trial_dir: Path | None = None) -> tuple[str | None, list[str]]:
     """第二段 LLM：把 patch_plan 落成新文件全文。返回 (新全文 or None, 错误列表)。"""
     if axis == TIER2_AXIS:
+        if tier2_target_name and tier2_target_name != "unified_model.py":
+            return gen_tier2_secondary_edit(api_key, trial, current_source, tier2_target_name, trial_dir)
         return gen_tier2_edit(api_key, trial, current_source)
     contract_text = INTERFACE_CONTRACTS.get(axis, "")
     prompt = f"""You are the code-editing module of a closed-loop auto-research system.
@@ -750,9 +881,15 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
     trial_dir.mkdir(parents=True, exist_ok=True)
     (trial_dir / "trial.json").write_text(json.dumps(trial, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    target = AXIS_FILES[axis]
+    tier2_target_name: str | None = None
+    if axis == TIER2_AXIS:
+        target, tier2_target_name = resolve_tier2_target(trial)
+    else:
+        target = AXIS_FILES[axis]
     current = target.read_text(encoding="utf-8")
-    new_source, gen_errors = gen_code_edit(api_key, axis, trial, current)
+    new_source, gen_errors = gen_code_edit(api_key, axis, trial, current,
+                                           tier2_target_name=tier2_target_name,
+                                           trial_dir=trial_dir)
     if new_source is None:
         rec = {"event": "codegen_rejected", "trial_id": trial["trial_id"], "axis": axis,
                "hypothesis": trial["hypothesis"], "errors": gen_errors[:6], "at": now_utc()}
@@ -761,9 +898,16 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
     (trial_dir / "edit.py").write_text(new_source, encoding="utf-8")
 
     # CPU 冒烟闸门（G-15）：假张量调用全部接口，坏编辑不烧 GPU；一次修复机会
-    smoke_err = functional_smoke(axis, trial_dir / "edit.py")
+    tier2_secondary = axis == TIER2_AXIS and tier2_target_name != "unified_model.py"
+
+    def _run_smoke(edit_path: Path) -> str | None:
+        if tier2_secondary:
+            return tier2_secondary_smoke(target, edit_path)
+        return functional_smoke(axis, edit_path)
+
+    smoke_err = _run_smoke(trial_dir / "edit.py")
     if smoke_err:
-        if axis == TIER2_AXIS:
+        if axis == TIER2_AXIS and not tier2_secondary:
             repair_payload = extract_tier2_function(new_source)
             repair_unit = "method (splice protocol unchanged)"
         else:
@@ -783,17 +927,22 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
                 block = m.group(1)
                 assert_no_hidden_tokens(block)
                 candidate = None
-                if axis == TIER2_AXIS:
+                if axis == TIER2_AXIS and not tier2_secondary:
                     candidate, splice_err = splice_tier2(current, block)
                     if splice_err:
                         candidate = None
+                elif tier2_secondary:
+                    sigs = TIER2_SECONDARY_SIGNATURES[tier2_target_name]
+                    if not FORBIDDEN_IMPORT_PAT.search(block) and all(sig in block for sig in sigs) \
+                            and not is_noop_edit(current, block):
+                        candidate = block
                 elif not FORBIDDEN_IMPORT_PAT.search(block) and all(
                     sig in block for sig in REQUIRED_SIGNATURES[axis]
                 ):
                     candidate = block
                 if candidate is not None:
                     (trial_dir / "edit.py").write_text(candidate, encoding="utf-8")
-                    smoke_err = functional_smoke(axis, trial_dir / "edit.py")
+                    smoke_err = _run_smoke(trial_dir / "edit.py")
                     if smoke_err is None:
                         new_source = candidate
         except Exception as exc:  # noqa: BLE001
@@ -805,14 +954,21 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
         return rec
 
     if axis == TIER2_AXIS:
-        # axis_lock 备注的人审兜底材料：函数级 diff 落盘（advisory，不阻塞）
+        # axis_lock 备注的人审兜底材料：diff 落盘（advisory，不阻塞）
         import difflib
-        diff = "\n".join(difflib.unified_diff(
-            extract_tier2_function(current).splitlines(),
-            extract_tier2_function(new_source).splitlines(),
-            fromfile=f"baseline/{TIER2_FUNC}", tofile=f"{trial['trial_id']}/{TIER2_FUNC}",
-            lineterm="",
-        ))
+        if tier2_secondary:
+            diff = "\n".join(difflib.unified_diff(
+                current.splitlines(), new_source.splitlines(),
+                fromfile=f"baseline/{tier2_target_name}",
+                tofile=f"{trial['trial_id']}/{tier2_target_name}", lineterm="",
+            ))
+        else:
+            diff = "\n".join(difflib.unified_diff(
+                extract_tier2_function(current).splitlines(),
+                extract_tier2_function(new_source).splitlines(),
+                fromfile=f"baseline/{TIER2_FUNC}", tofile=f"{trial['trial_id']}/{TIER2_FUNC}",
+                lineterm="",
+            ))
         (trial_dir / "tier2_function_diff.txt").write_text(diff + "\n", encoding="utf-8")
 
     lock_cfg = load_config(CONTRACT / "axis_lock_v1_draft.json", AEROWF_REPO, DOWNSTREAM)
