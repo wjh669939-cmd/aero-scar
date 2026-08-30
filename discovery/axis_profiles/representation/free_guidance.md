@@ -3,7 +3,7 @@
 - 可编辑文件仅 trial_features.py；
 - 硬红线（泄漏）：FORBIDDEN_INPUT_COLUMNS = ("weather_code_id", "weather_label", "significant_wx")
   不得以任何形式进入输入；任何特征只能使用 forecast_origin 时刻及之前可得的信息（issue-time 因果）；
-- build_forecast_inputs / build_classification_inputs 的输出 x 形状锁定为 (96, n_slots, 2)，
+- build_forecast_inputs / build_classification_inputs 的输出 x 形状锁定为 (n_slots, 96, 11)（2026-08-30 勘误：旧文误写 (96, n_slots, 2) 幻想布局，与 llm-rep-106/107 事故同源），
   node_mask 为 bool；
 - 事实（lineage 实证）：预报分支只消费 x 张量本身；exo/编码器路径的改动不影响 forecast 两腿。
 

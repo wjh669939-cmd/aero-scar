@@ -97,6 +97,42 @@ TIER2_SECONDARY_SIGNATURES = {
 }
 
 
+# ---- model 轴：多文件整文件重写协议（2026-08-30 预接线，DEC 未激活）----
+# 注意：本段在 9/2 激活决定前是死代码——axis_lock v1.3 不含 model 轴路径，
+# check() 默认拒绝；registry 中 M1-M5 均为 conditional，提案阶段无可用模板。
+# 编辑面与阶段绑定（v1.3 草案，待 C 签）：
+#   fusion/dual_stream_fusion.py   M1  改共享编码路径 → tier2 绑定，重跑 pretrain
+#   encoders/exogenous_encoder.py  M2  pretrain 前向不经过（探针实测）→ tier1 绑定，可复用 ckpt
+#   encoders/frets_encoder.py      M4  同 M1
+#   encoders/transformer_encoder.py M4 同 M1
+#   （M5 改 unified_model.py 头部段 → 直接走 tier2 既有函数拼接协议）
+MODEL_AXIS = "model"
+MODEL_FILES = {
+    "dual_stream_fusion.py": Path(AEROWF_REPO) / "models/AirFM/fusion/dual_stream_fusion.py",
+    "exogenous_encoder.py": Path(AEROWF_REPO) / "models/AirFM/encoders/exogenous_encoder.py",
+    "frets_encoder.py": Path(AEROWF_REPO) / "models/AirFM/encoders/frets_encoder.py",
+    "transformer_encoder.py": Path(AEROWF_REPO) / "models/AirFM/encoders/transformer_encoder.py",
+}
+MODEL_SIGNATURES = {
+    "dual_stream_fusion.py": ["class DualStreamFusion", "def forward(", "def get_fusion_weights("],
+    "exogenous_encoder.py": ["class ExogenousEncoder", "def forward(", "def get_info("],
+    "frets_encoder.py": ["class FreTSEncoder", "class FreTSBlock", "def forward("],
+    "transformer_encoder.py": ["class TransformerEncoder", "def forward("],
+}
+# tier1 绑定（可吃 ckpt 复用）的编辑面：pretrain 前向不经过的模块
+MODEL_TIER1_BOUND_TARGETS = {"exogenous_encoder.py"}
+
+
+def resolve_model_target(trial: dict) -> tuple[Path, str]:
+    """按提案 editable_paths 显式声明路由（协议同 tier2：只看声明，不读 patch_plan）。"""
+    declared = " ".join(str(p) for p in (trial.get("editable_paths") or []))
+    for name in MODEL_FILES:
+        if name in declared:
+            return MODEL_FILES[name], name
+    # 无法路由时给 fusion（最小编辑面）；签名闸门会拦住驴唇不对马嘴的编辑
+    return MODEL_FILES["dual_stream_fusion.py"], "dual_stream_fusion.py"
+
+
 def resolve_tier2_target(trial: dict) -> tuple[Path, str]:
     """按提案 editable_paths（显式声明）路由目标文件；默认 unified_model.py。
 
@@ -452,6 +488,73 @@ assert isinstance(loss_dict, dict) and loss_dict, "loss_dict missing/empty"
 print(f"SMOKE_LOSS_FP={loss.item()!r}")
 print("SMOKE_OK")
 """,
+    # model 轴：编辑已临时安装到真实路径，走仓库正常 import；argv[1] 忽略。
+    # 三道验证 + 双指纹（探针实测：pretrain 前向不经过 exo_encoder，
+    # 单一 pretrain 指纹会把 M2 编辑误判为惰性——加 encode(含 exo) 第二指纹）。
+    "model": """
+import sys
+sys.path.insert(0, "/root/autodl-tmp/aerowf_baseline/AeroWF")
+import numpy as np, torch
+from models.AirFM.unified_model import UnifiedSeries2Vec
+np.random.seed(0); torch.manual_seed(0)
+SMALL = {
+    "Data_shape": (2, 4, 96, 11), "N_max": 4, "num_nodes": 3,
+    "emb_size": 32, "rep_size": 64, "num_heads": 2, "dim_ff": 64, "dropout": 0.0,
+    "encoder_num_heads": 2, "encoder_num_layers": 1, "encoder_dim_ff": 64,
+    "frets_num_layers": 1, "use_simple_gnn": True, "gnn_hidden": 32, "gnn_layers": 1,
+    "fusion_type": "residual_add", "use_frequency": True, "use_hierarchy": True,
+    "use_masked_recon": True, "mask_ratio": 0.25,
+    "random_mask_strategy": "random", "causal_mask_strategy": "last", "causal_prob": 0.5,
+    "proj_hidden_dim": 32, "proj_output_dim": 16,
+    "lambda_recon": 1.0, "lambda_contrast": 0.5,
+    "ema_momentum": 0.99, "warmup_batches": 1,
+    "sdtw_gamma": 0.1, "softdtw_pair_chunk_size": 8,
+    "exo_config": {"categorical": {"significant_wx": {"vocab_size": 2},
+        "sky_condition": {"vocab_size": 6}, "has_gust": {"vocab_size": 2},
+        "is_cavok": {"vocab_size": 2}},
+        "continuous": ["visibility", "cloud_height", "gust_speed"]},
+}
+model = UnifiedSeries2Vec(SMALL, num_classes=3)
+model.train()
+x = torch.rand(2, 4, 96, 11)
+node_mask = torch.tensor([[True, True, True, False], [True, True, False, False]])
+loss, loss_dict = model.unified_pretrain_forward(x, sdtw=None, node_mask=node_mask)
+assert loss.dim() == 0 and torch.isfinite(loss), f"pretrain loss bad: {loss}"
+loss.backward()
+grads = [p.grad for p in model.parameters() if p.grad is not None]
+assert grads and all(torch.isfinite(g).all() for g in grads), "gradient check failed"
+# 第二指纹：下游 encode 路径，喂 exo（M2 编辑面唯一会被执行的路径）
+# 实测接口：categorical/continuous 均为 {name: (B,) tensor} 字典
+exo_cat = {"significant_wx": torch.tensor([1, 0]), "sky_condition": torch.tensor([1, 2]),
+           "has_gust": torch.tensor([0, 1]), "is_cavok": torch.tensor([1, 0])}
+exo_cont = {"visibility": torch.rand(2), "cloud_height": torch.rand(2),
+            "gust_speed": torch.rand(2)}
+model.eval()
+with torch.no_grad():
+    rep_T, rep_F = model.encode(x, exo_categorical=exo_cat, exo_continuous=exo_cont,
+                                node_mask=node_mask)
+assert torch.isfinite(rep_T).all() and torch.isfinite(rep_F).all(), "encode with exo failed"
+rep = rep_T.sum() + rep_F.sum()
+# 参数预算（真实配置，探针实测口径：num_classes=21 / sky_vocab=1 → parent 3,930,853）
+REAL = dict(SMALL)
+REAL.update({"Data_shape": (4, 4, 96, 11), "emb_size": 128, "rep_size": 256,
+    "num_heads": 8, "dim_ff": 256, "dropout": 0.2,
+    "encoder_num_heads": 4, "encoder_num_layers": 3, "encoder_dim_ff": 512,
+    "frets_num_layers": 2, "gnn_hidden": 128, "gnn_layers": 2,
+    "proj_hidden_dim": 256, "proj_output_dim": 128, "warmup_batches": 10,
+    "softdtw_pair_chunk_size": 256})
+REAL["exo_config"] = {"categorical": {"significant_wx": {"vocab_size": 2},
+    "sky_condition": {"vocab_size": 1}, "has_gust": {"vocab_size": 2},
+    "is_cavok": {"vocab_size": 2}},
+    "continuous": ["visibility", "cloud_height", "gust_speed"]}
+n = sum(p.numel() for p in UnifiedSeries2Vec(REAL, num_classes=21).parameters())
+rel = abs(n - 3930853) / 3930853
+assert rel <= 0.05, f"param budget exceeded: {n} vs 3930853 (|delta|={rel:.4f} > 0.05)"
+print(f"SMOKE_LOSS_FP={loss.item()!r}")
+print(f"SMOKE_ENC_FP={rep.item()!r}")
+print(f"SMOKE_PARAMS={n}")
+print("SMOKE_OK")
+""",
 }
 
 
@@ -465,10 +568,10 @@ def functional_smoke(axis: str, source_path: Path, return_loss_fp: bool = False)
         capture_output=True, text=True, timeout=120,
     )
     ok = proc.returncode == 0 and "SMOKE_OK" in proc.stdout
-    fp = None
-    for line in proc.stdout.splitlines():
-        if line.startswith("SMOKE_LOSS_FP="):
-            fp = line.split("=", 1)[1]
+    # 指纹 = 所有 SMOKE_*_FP 行拼接（tier2 单指纹；model 轴 pretrain+encode 双指纹）
+    fp_lines = [line for line in proc.stdout.splitlines()
+                if line.startswith("SMOKE_") and "_FP=" in line]
+    fp = "|".join(fp_lines) if fp_lines else None
     err = None if ok else (proc.stderr or proc.stdout).strip()[-600:]
     if return_loss_fp:
         return err, fp
@@ -483,6 +586,19 @@ def tier2_secondary_smoke(target: Path, edit_path: Path) -> str | None:
     try:
         target.write_text(edit_path.read_text(encoding="utf-8"), encoding="utf-8")
         return functional_smoke(TIER2_AXIS, TIER2_FILES["unified_model.py"])
+    finally:
+        shutil.copy2(backup, target)
+        backup.unlink()
+
+
+def model_smoke(target: Path, edit_path: Path, return_loss_fp: bool = False):
+    """model 轴冒烟：临时安装编辑到真实路径（unified_model 正常 import 编辑后的
+    子模块）→ 三道验证 + 双指纹 → 无条件还原。"""
+    backup = target.with_suffix(".py.smoke_backup")
+    shutil.copy2(target, backup)
+    try:
+        target.write_text(edit_path.read_text(encoding="utf-8"), encoding="utf-8")
+        return functional_smoke(MODEL_AXIS, edit_path, return_loss_fp=return_loss_fp)
     finally:
         shutil.copy2(backup, target)
         backup.unlink()
@@ -654,14 +770,91 @@ def extract_code_block(raw: str) -> str | None:
     return m.group(1) if m else None
 
 
+def gen_model_edit(api_key: str, trial: dict, current_source: str,
+                   target_name: str, trial_dir: Path | None = None) -> tuple[str | None, list[str]]:
+    """model 轴整文件重写协议（协议同 tier2 二级文件；签名/预算/形状由冒烟三道验证兜底）。"""
+    signatures = MODEL_SIGNATURES[target_name]
+    prompt = f"""You are the code-editing module of a closed-loop auto-research system.
+Your approved research proposal for this trial:
+{json.dumps({k: trial[k] for k in ('hypothesis', 'patch_plan', 'expected_effect', 'falsification')}, ensure_ascii=False, indent=1)}
+
+You must implement the patch_plan by rewriting ONE file completely:
+models/AirFM/{'fusion' if target_name == 'dual_stream_fusion.py' else 'encoders'}/{target_name} (model axis, axis-lock approved).
+
+INTERFACE CONTRACT (must hold, violating = trial fails before training):
+- Keep every public signature present in the current file, including at least:
+  {signatures}
+- Constructor argument names/order must stay unchanged (callers in the locked
+  unified_model.py are not editable in this trial).
+- Tensor shapes and dtypes returned by each public method must stay identical.
+- Total parameter count of the assembled model must stay within +/-5% of the
+  baseline (checked mechanically before training; do not add large new layers).
+- Pure-Python + numpy + torch only. No file I/O, no network, no subprocess.
+- The change must implement exactly the approved patch_plan, nothing else.
+
+Current file content:
+```python
+{current_source}
+```
+
+Answer with the complete new file content in ONE ```python code block and nothing else."""
+    errors: list[str] = []
+    messages: list[dict] = [{"role": "user", "content": prompt}]
+    for attempt in range(2):
+        try:
+            raw = call_llm(api_key, messages, temperature=0.2)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"codegen LLM call failed: {exc}")
+            continue
+        err: str | None = None
+        source = extract_code_block(raw)
+        if source is None:
+            err = "codegen output missing/unclosed code fence (possible truncation)"
+        else:
+            try:
+                assert_no_hidden_tokens(source)
+            except Exception as exc:  # noqa: BLE001
+                err = f"hidden token in codegen output: {exc}"
+            if err is None:
+                missing = [sig for sig in MODEL_SIGNATURES[target_name] if sig not in source]
+                if missing:
+                    err = f"missing required signatures: {missing}"
+            if err is None and is_noop_edit(current_source, source):
+                err = "no-op edit: change is comments/docstring only, patch_plan not implemented"
+            if err is None and FORBIDDEN_IMPORT_PAT.search(source):
+                err = "forbidden import of locked/other-axis module"
+            if err is None:
+                tmp = Path("/tmp/_codegen_check.py")
+                tmp.write_text(source, encoding="utf-8")
+                try:
+                    py_compile.compile(str(tmp), doraise=True)
+                except py_compile.PyCompileError as exc:
+                    err = f"py_compile failed: {exc}"
+        if err is None:
+            return source, errors
+        errors.append(err)
+        if trial_dir is not None:
+            (trial_dir / f"codegen_rejected_attempt{attempt}.txt").write_text(raw, encoding="utf-8")
+        messages.append({"role": "assistant", "content": raw})
+        messages.append({"role": "user", "content": (
+            f"Your previous file edit was REJECTED before training.\nReason: {err}\n"
+            "Produce a corrected complete file implementing the same approved patch_plan, "
+            "in ONE ```python block and nothing else."
+        )})
+    return None, errors
+
+
 def gen_code_edit(api_key: str, axis: str, trial: dict, current_source: str,
                   tier2_target_name: str | None = None,
+                  model_target_name: str | None = None,
                   trial_dir: Path | None = None) -> tuple[str | None, list[str]]:
     """第二段 LLM：把 patch_plan 落成新文件全文。返回 (新全文 or None, 错误列表)。"""
     if axis == TIER2_AXIS:
         if tier2_target_name and tier2_target_name != "unified_model.py":
             return gen_tier2_secondary_edit(api_key, trial, current_source, tier2_target_name, trial_dir)
         return gen_tier2_edit(api_key, trial, current_source)
+    if axis == MODEL_AXIS:
+        return gen_model_edit(api_key, trial, current_source, model_target_name, trial_dir)
     contract_text = INTERFACE_CONTRACTS.get(axis, "")
     prompt = f"""You are the code-editing module of a closed-loop auto-research system.
 Your approved research proposal for this trial:
@@ -932,13 +1125,17 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
     (trial_dir / "trial.json").write_text(json.dumps(trial, ensure_ascii=False, indent=2), encoding="utf-8")
 
     tier2_target_name: str | None = None
+    model_target_name: str | None = None
     if axis == TIER2_AXIS:
         target, tier2_target_name = resolve_tier2_target(trial)
+    elif axis == MODEL_AXIS:
+        target, model_target_name = resolve_model_target(trial)
     else:
         target = AXIS_FILES[axis]
     current = target.read_text(encoding="utf-8")
     new_source, gen_errors = gen_code_edit(api_key, axis, trial, current,
                                            tier2_target_name=tier2_target_name,
+                                           model_target_name=model_target_name,
                                            trial_dir=trial_dir)
     if new_source is None:
         rec = {"event": "codegen_rejected", "trial_id": trial["trial_id"], "axis": axis,
@@ -953,10 +1150,25 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
     def _run_smoke(edit_path: Path) -> str | None:
         if tier2_secondary:
             return tier2_secondary_smoke(target, edit_path)
+        if axis == MODEL_AXIS:
+            return model_smoke(target, edit_path)
         return functional_smoke(axis, edit_path)
 
-    # tier2 行为惰性闸门（llm-obj-309 教训：改调用方会覆盖的默认值 = 编辑零效果）：
-    # 冒烟路径的 loss 指纹与基线逐位相同 → 编辑在执行路径上不产生任何行为变化，拒绝。
+    # 行为惰性闸门（llm-obj-309 教训：改调用方会覆盖的默认值 = 编辑零效果）：
+    # 冒烟路径指纹与基线逐位相同 → 拒绝。model 轴为双指纹（pretrain 损失 + encode
+    # 含 exo 输出），单一 pretrain 指纹会误杀 exo_encoder 编辑（探针实测）。
+    if axis == MODEL_AXIS:
+        _, fp_base = functional_smoke(MODEL_AXIS, target, return_loss_fp=True)
+        _, fp_edit = model_smoke(target, trial_dir / "edit.py", return_loss_fp=True)
+        if fp_base is not None and fp_edit is not None and fp_base == fp_edit:
+            rec = {"event": "smoke_rejected", "trial_id": trial["trial_id"], "axis": axis,
+                   "hypothesis": trial["hypothesis"],
+                   "smoke_error": ("behaviorally inert edit: both smoke fingerprints "
+                                   "(pretrain loss + encode-with-exo output) are bit-identical "
+                                   "to baseline — the change does not reach any executed path"),
+                   "at": now_utc()}
+            append_lineage(rec)
+            return rec
     if axis == TIER2_AXIS:
         if tier2_secondary:
             backup_fp = target.with_suffix(".py.fp_backup")
@@ -1006,8 +1218,9 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
                     candidate, splice_err = splice_tier2(current, block)
                     if splice_err:
                         candidate = None
-                elif tier2_secondary:
-                    sigs = TIER2_SECONDARY_SIGNATURES[tier2_target_name]
+                elif tier2_secondary or axis == MODEL_AXIS:
+                    sigs = (TIER2_SECONDARY_SIGNATURES[tier2_target_name] if tier2_secondary
+                            else MODEL_SIGNATURES[model_target_name])
                     if not FORBIDDEN_IMPORT_PAT.search(block) and all(sig in block for sig in sigs) \
                             and not is_noop_edit(current, block):
                         candidate = block
@@ -1028,6 +1241,14 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
         append_lineage(rec)
         return rec
 
+    if axis == MODEL_AXIS:
+        import difflib
+        diff = "\n".join(difflib.unified_diff(
+            current.splitlines(), new_source.splitlines(),
+            fromfile=f"baseline/{model_target_name}",
+            tofile=f"{trial['trial_id']}/{model_target_name}", lineterm="",
+        ))
+        (trial_dir / "model_file_diff.txt").write_text(diff + "\n", encoding="utf-8")
     if axis == TIER2_AXIS:
         # axis_lock 备注的人审兜底材料：diff 落盘（advisory，不阻塞）
         import difflib
@@ -1068,8 +1289,13 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
             downstream_epochs=30,
             timeout_sec=6 * 3600,
         )
+        # stage 绑定（v1.3 草案）：model 轴改共享编码路径的编辑面按 tier2 处理；
+        # exo_encoder（pretrain 前向不经过，探针实测）按 tier1 处理、可复用 ckpt。
+        tier2_bound = axis == TIER2_AXIS or (
+            axis == MODEL_AXIS and model_target_name not in MODEL_TIER1_BOUND_TARGETS
+        )
         extra_args: list[str] = []
-        if axis != TIER2_AXIS and seed in REUSE_PRETRAIN_CKPTS:
+        if not tier2_bound and seed in REUSE_PRETRAIN_CKPTS:
             extra_args = ["--reuse-pretrain-checkpoint", REUSE_PRETRAIN_CKPTS[seed]]
         if axis == "objective_tier1":
             # O2 数据前置（B3 冻结交付）：train batch 携带事件标志；基线损失忽略，行为不变
@@ -1098,8 +1324,8 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
                 outcome.output_root, trial["trial_id"], seed, trial_dir / "eval",
                 parent_refs=parent_refs,
             )
-            if axis == TIER2_AXIS:
-                # decision_policy v1.2 stage 绑定：tier2 primary = pretrained vs parent scratch
+            if tier2_bound:
+                # decision_policy v1.2 stage 绑定：primary = pretrained vs parent scratch
                 pre = flat.get("forecast_pretrained.policy.RMSE_macro_norm")
                 scr_ref = parent_refs.get("forecast_scratch", {}).get("RMSE_macro_norm")
                 if isinstance(pre, dict) and "value" in pre and scr_ref is not None:
@@ -1110,12 +1336,12 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
             result["paired_delta_vs_parent"] = deltas
             result["evaluation_manifest_digest"] = flat.get("__manifest_digest__", "")
             result["guardrail_check"] = guardrail_advisory(deltas)
-            primary_key = TIER2_PRIMARY_KEY if axis == TIER2_AXIS else "forecast_scratch.RMSE_macro_norm"
+            primary_key = TIER2_PRIMARY_KEY if tier2_bound else "forecast_scratch.RMSE_macro_norm"
             primary = deltas.get(primary_key)
             if primary is not None:
                 # decision_policy v1.2 筛选线：配对改善 >= 0.0005（stage 绑定按轴）
                 result["screen_pass"] = bool(primary <= -0.0005)
-        verdict, verdict_basis = adjudicate(result, axis=axis)
+        verdict, verdict_basis = adjudicate(result, axis=TIER2_AXIS if tier2_bound else axis)
         result["hypothesis_verdict"] = verdict
         tail = ""
         if outcome.status != "success":
@@ -1125,6 +1351,7 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
         (trial_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
         append_lineage({
             "event": "trial_done", "trial_id": trial["trial_id"], "axis": axis,
+            "edit_target": tier2_target_name or model_target_name,
             "llm_model_config": LLM_MODEL,
             "llm_model_served": sorted(_SERVED_MODELS),
             "action_id": trial["action_id"], "parent_trial": parent_trial,
