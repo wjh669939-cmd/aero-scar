@@ -1,0 +1,263 @@
+{
+  "sky_vocab": 1,
+  "num_classes": 21,
+  "param_count": 3930853,
+  "probe_batch": 4,
+  "loss_keys": [
+    "contrast",
+    "ema_batches_seen",
+    "ema_dist_F_range",
+    "ema_dist_T_range",
+    "gt_F_mean",
+    "gt_T_mean",
+    "has_exogenous",
+    "lambda_contrast",
+    "lambda_recon",
+    "loss_F",
+    "loss_T",
+    "num_causal",
+    "num_random",
+    "pred_F_mean",
+    "pred_T_mean",
+    "recon",
+    "rep_F_dist_mean",
+    "rep_T_dist_mean",
+    "total"
+  ],
+  "module_shapes": {
+    "encoder_T.pos_encoder": {
+      "module": "PositionalEncoding",
+      "inputs": [
+        [
+          16,
+          96,
+          128
+        ]
+      ],
+      "kwargs": {},
+      "output": [
+        16,
+        96,
+        128
+      ]
+    },
+    "encoder_T": {
+      "module": "TransformerEncoder",
+      "inputs": [
+        [
+          16,
+          11,
+          96
+        ]
+      ],
+      "kwargs": {},
+      "output": [
+        16,
+        256,
+        87
+      ]
+    },
+    "encoder_F.frets_blocks.0.channel_learner": {
+      "module": "FrequencyChannelLearner",
+      "inputs": [
+        [
+          16,
+          128,
+          49
+        ],
+        [
+          16,
+          128,
+          49
+        ]
+      ],
+      "kwargs": {},
+      "output": [
+        [
+          16,
+          128,
+          49
+        ],
+        [
+          16,
+          128,
+          49
+        ]
+      ]
+    },
+    "encoder_F.frets_blocks.0.temporal_learner": {
+      "module": "FrequencyTemporalLearner",
+      "inputs": [
+        [
+          16,
+          128,
+          49
+        ],
+        [
+          16,
+          128,
+          49
+        ]
+      ],
+      "kwargs": {},
+      "output": [
+        [
+          16,
+          128,
+          49
+        ],
+        [
+          16,
+          128,
+          49
+        ]
+      ]
+    },
+    "encoder_F.frets_blocks.0": {
+      "module": "FreTSBlock",
+      "inputs": [
+        [
+          16,
+          128,
+          49
+        ],
+        [
+          16,
+          128,
+          49
+        ]
+      ],
+      "kwargs": {},
+      "output": [
+        [
+          16,
+          128,
+          49
+        ],
+        [
+          16,
+          128,
+          49
+        ]
+      ]
+    },
+    "encoder_F.frets_blocks.1.channel_learner": {
+      "module": "FrequencyChannelLearner",
+      "inputs": [
+        [
+          16,
+          128,
+          49
+        ],
+        [
+          16,
+          128,
+          49
+        ]
+      ],
+      "kwargs": {},
+      "output": [
+        [
+          16,
+          128,
+          49
+        ],
+        [
+          16,
+          128,
+          49
+        ]
+      ]
+    },
+    "encoder_F.frets_blocks.1.temporal_learner": {
+      "module": "FrequencyTemporalLearner",
+      "inputs": [
+        [
+          16,
+          128,
+          49
+        ],
+        [
+          16,
+          128,
+          49
+        ]
+      ],
+      "kwargs": {},
+      "output": [
+        [
+          16,
+          128,
+          49
+        ],
+        [
+          16,
+          128,
+          49
+        ]
+      ]
+    },
+    "encoder_F.frets_blocks.1": {
+      "module": "FreTSBlock",
+      "inputs": [
+        [
+          16,
+          128,
+          49
+        ],
+        [
+          16,
+          128,
+          49
+        ]
+      ],
+      "kwargs": {},
+      "output": [
+        [
+          16,
+          128,
+          49
+        ],
+        [
+          16,
+          128,
+          49
+        ]
+      ]
+    },
+    "encoder_F": {
+      "module": "FreTSEncoder",
+      "inputs": [
+        [
+          16,
+          11,
+          96
+        ]
+      ],
+      "kwargs": {},
+      "output": [
+        16,
+        256,
+        87
+      ]
+    },
+    "fusion": {
+      "module": "DualStreamFusion",
+      "inputs": [
+        [
+          16,
+          256
+        ],
+        [
+          16,
+          256
+        ]
+      ],
+      "kwargs": {},
+      "output": [
+        16,
+        256
+      ]
+    }
+  }
+}
