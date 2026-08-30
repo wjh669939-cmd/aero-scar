@@ -1,0 +1,12 @@
+{
+  "forecast_scratch.RMSE_macro_norm": 0.0,
+  "forecast_scratch.MAE_macro_norm": 0.0,
+  "forecast_pretrained.RMSE_macro_norm": 9e-06,
+  "forecast_pretrained.MAE_macro_norm": 0.0,
+  "classification_scratch.classification_macro_f1": -2e-06,
+  "classification_scratch.classification_csi_macro": 5e-06,
+  "classification_scratch.hazard_class_f1": 4e-06,
+  "classification_pretrained.classification_macro_f1": -0.0,
+  "classification_pretrained.classification_csi_macro": 0.0,
+  "classification_pretrained.hazard_class_f1": 1e-06
+}
