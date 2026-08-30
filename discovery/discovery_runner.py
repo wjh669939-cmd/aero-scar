@@ -417,6 +417,8 @@ spec = importlib.util.spec_from_file_location("models.AirFM.unified_model_trial"
 m = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = m
 spec.loader.exec_module(m)
+import numpy as np
+np.random.seed(0)  # generate_hybrid_mask 用 numpy RNG——不 seed 则指纹不可复现
 torch.manual_seed(0)
 # 缩小维度的真实构造：走与正式预训练相同的 unified_pretrain_forward 全路径
 # （物理距离 GT + 混合掩码 + 编码 + 重建/对比双损失 + 反传）
@@ -447,22 +449,30 @@ grads = [p.grad for p in model.parameters() if p.grad is not None]
 assert grads, "no parameter received gradient"
 assert all(torch.isfinite(g).all() for g in grads), "non-finite gradients"
 assert isinstance(loss_dict, dict) and loss_dict, "loss_dict missing/empty"
+print(f"SMOKE_LOSS_FP={loss.item()!r}")
 print("SMOKE_OK")
 """,
 }
 
 
-def functional_smoke(axis: str, source_path: Path) -> str | None:
-    """CPU 假张量冒烟：签名可调用、形状/有限性/反传均正常。返回错误文本或 None。"""
+def functional_smoke(axis: str, source_path: Path, return_loss_fp: bool = False):
+    """CPU 假张量冒烟：签名可调用、形状/有限性/反传均正常。
+    return_loss_fp=True 时返回 (错误或 None, loss 指纹或 None)——tier2 行为惰性检测用。"""
     import subprocess as sp
     snippet = _SMOKE_SNIPPETS[axis]
     proc = sp.run(
         ["/root/miniconda3/bin/python", "-c", snippet, str(source_path)],
         capture_output=True, text=True, timeout=120,
     )
-    if proc.returncode == 0 and "SMOKE_OK" in proc.stdout:
-        return None
-    return (proc.stderr or proc.stdout).strip()[-600:]
+    ok = proc.returncode == 0 and "SMOKE_OK" in proc.stdout
+    fp = None
+    for line in proc.stdout.splitlines():
+        if line.startswith("SMOKE_LOSS_FP="):
+            fp = line.split("=", 1)[1]
+    err = None if ok else (proc.stderr or proc.stdout).strip()[-600:]
+    if return_loss_fp:
+        return err, fp
+    return err
 
 
 def tier2_secondary_smoke(target: Path, edit_path: Path) -> str | None:
@@ -944,6 +954,32 @@ def run_one_trial(api_key: str, axis: str, trial_seq: int, seed: int,
         if tier2_secondary:
             return tier2_secondary_smoke(target, edit_path)
         return functional_smoke(axis, edit_path)
+
+    # tier2 行为惰性闸门（llm-obj-309 教训：改调用方会覆盖的默认值 = 编辑零效果）：
+    # 冒烟路径的 loss 指纹与基线逐位相同 → 编辑在执行路径上不产生任何行为变化，拒绝。
+    if axis == TIER2_AXIS:
+        if tier2_secondary:
+            backup_fp = target.with_suffix(".py.fp_backup")
+            shutil.copy2(target, backup_fp)
+            try:
+                _, fp_base = functional_smoke(TIER2_AXIS, TIER2_FILES["unified_model.py"], return_loss_fp=True)
+                target.write_text((trial_dir / "edit.py").read_text(encoding="utf-8"), encoding="utf-8")
+                _, fp_edit = functional_smoke(TIER2_AXIS, TIER2_FILES["unified_model.py"], return_loss_fp=True)
+            finally:
+                shutil.copy2(backup_fp, target)
+                backup_fp.unlink()
+        else:
+            _, fp_base = functional_smoke(axis, target, return_loss_fp=True)
+            _, fp_edit = functional_smoke(axis, trial_dir / "edit.py", return_loss_fp=True)
+        if fp_base is not None and fp_edit is not None and fp_base == fp_edit:
+            rec = {"event": "smoke_rejected", "trial_id": trial["trial_id"], "axis": axis,
+                   "hypothesis": trial["hypothesis"],
+                   "smoke_error": ("behaviorally inert edit: smoke-path pretrain loss is "
+                                   f"bit-identical to baseline ({fp_base}) — the change does not "
+                                   "reach the executed path (e.g. default overridden by caller)"),
+                   "at": now_utc()}
+            append_lineage(rec)
+            return rec
 
     smoke_err = _run_smoke(trial_dir / "edit.py")
     if smoke_err:
