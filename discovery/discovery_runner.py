@@ -302,12 +302,31 @@ O2_EVENT_FLAGS_CSV = (
 )
 
 # parent seed42 参考（C evaluator v1.0.2，2026-08-27 落盘于 discovery/parent_refs/）
-PARENT_REFS = {
+# 注意：以下是 D 机（parent 本尊机）实测值，仅作缺省。
+_PARENT_REFS_D_MACHINE = {
     "forecast_scratch": {"RMSE_macro_norm": 0.04847144659294747, "MAE_macro_norm": 0.0254475019647884},
     "forecast_pretrained": {"RMSE_macro_norm": 0.05090555, "MAE_macro_norm": 0.02848562},
     "classification_scratch": {"classification_macro_f1": 0.75035, "classification_csi_macro": 0.62679, "hazard_class_f1": 0.63309},
     "classification_pretrained": {"classification_macro_f1": 0.80365, "classification_csi_macro": 0.69388, "hazard_class_f1": 0.78857},
 }
+
+
+def _load_parent_refs() -> dict:
+    """机器本地 parent 参照优先（llm-obj-202 假阳性整改，2026-08-30）。
+
+    跨机器硬件级不可位复现实测：O-t1 相对 D 机 fc_scratch RMSE 偏移 −6.68e-4，
+    超过 0.0005 筛选线。克隆机必须先跑 gen_local_parent.py 生成
+    discovery/parent_refs_local.json，配对 Δ 一律 vs 本机参照。
+    """
+    local = DISCOVERY / "parent_refs_local.json"
+    if local.exists():
+        refs = json.loads(local.read_text(encoding="utf-8"))
+        print(f"parent refs: 本机参照 {local}（{refs.get('_generated_at', 'n/a')}）")
+        return {k: v for k, v in refs.items() if not k.startswith("_")}
+    return _PARENT_REFS_D_MACHINE
+
+
+PARENT_REFS = _load_parent_refs()
 
 FAILURE_SLICES_SUMMARY = (
     "(a) 预训练对 forecast 是负迁移：3 个 seed（42/43/2027）上 scratch RMSE 一致优于 "
