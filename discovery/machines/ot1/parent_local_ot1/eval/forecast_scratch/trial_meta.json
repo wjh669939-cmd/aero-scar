@@ -1,0 +1,1 @@
+{"trial_id": "parent-local-ot1", "arm": "llm", "seed": 42, "task": "forecast", "checkpoint_digest": "forecast_scratch"}

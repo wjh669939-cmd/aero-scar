@@ -1,0 +1,17 @@
+{
+  "utc": "2026-08-30T10:19:20Z",
+  "evaluator_version": "1.0.2",
+  "evaluator_code_sha256": "a6c2906c8a518fbb94eea05b598423f1df528ff5abd4f531492298b279da1882",
+  "evaluator_config_sha256": "213fbbe2c4865ecd55c962bc4e56c6c1ba86acf2d2e17b3f9c1ed21351f53bae",
+  "split_manifest_sha256": "7744acf8d36296aafcddc116c77d20c5add302fe959e829024a37975a1722b87",
+  "normalization_stats_sha256": "867e63fb69a1fdc3d55d0b61a37a3ef3eedfd6d9ea61640aa39f89fcf3acbf83",
+  "metric_definition_id": "AeroWF_C1_metrics_v1_2_contract_v2_normalized",
+  "task_contract_version": "2.0",
+  "task_contract_sha256": "2e55c519acc44075707157813cd7a1199d6e595317c9a730b895296c80385be8",
+  "data_release": "AeroWF_v1",
+  "metric_scale": "normalized_[0,1]",
+  "forecast_protocol": "paper_aligned_wind_forecast",
+  "predictions_sha256": "c774d8d186098d8e6fe4ec6b4f69005c31f4523c214a5e526279b9f4f90538ea",
+  "trial_meta_sha256": "64496f3b0b86cc4243d56f4d3cc5de1592487a8afce132b24b03069709a5d550",
+  "n_samples": 11883
+}

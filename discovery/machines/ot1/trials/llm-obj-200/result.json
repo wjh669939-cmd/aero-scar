@@ -1,0 +1,1370 @@
+{
+  "trial_id": "llm-obj-200",
+  "attempt_id": 1,
+  "status": "completed",
+  "status_reason": "screening 单 seed 完成",
+  "metrics_by_endpoint": {
+    "forecast_scratch.policy.RMSE_macro_norm": {
+      "source_metric": "overall.forecast.rmse",
+      "value": 0.048429824648043185,
+      "ci95": [
+        0.04361631004922523,
+        0.05348482089621236
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.policy.MAE_macro_norm": {
+      "source_metric": "overall.forecast.mae",
+      "value": 0.024114309883854455,
+      "ci95": [
+        0.022441289206240587,
+        0.02593611030550095
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZBAA.T+1.wind_x.mae": {
+      "name": "forecast.ZBAA.T+1.wind_x.mae",
+      "value": 0.021009839702435213,
+      "ci95": [
+        0.01963790500815655,
+        0.022498579166695152
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZBAA.T+1.wind_x.rmse": {
+      "name": "forecast.ZBAA.T+1.wind_x.rmse",
+      "value": 0.04927708917823859,
+      "ci95": [
+        0.04475666663468569,
+        0.05377485595266293
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZBAA.T+1.wind_y.mae": {
+      "name": "forecast.ZBAA.T+1.wind_y.mae",
+      "value": 0.017020742198834916,
+      "ci95": [
+        0.01624482475021333,
+        0.01776925193696054
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZBAA.T+1.wind_y.rmse": {
+      "name": "forecast.ZBAA.T+1.wind_y.rmse",
+      "value": 0.03972645300621741,
+      "ci95": [
+        0.03650523774790754,
+        0.04277395321560605
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZBAA.T+4.wind_x.mae": {
+      "name": "forecast.ZBAA.T+4.wind_x.mae",
+      "value": 0.028564398469835352,
+      "ci95": [
+        0.026460013118609283,
+        0.031073097141913954
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZBAA.T+4.wind_x.rmse": {
+      "name": "forecast.ZBAA.T+4.wind_x.rmse",
+      "value": 0.058024743573900486,
+      "ci95": [
+        0.052767173711404367,
+        0.0633583425510156
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZBAA.T+4.wind_y.mae": {
+      "name": "forecast.ZBAA.T+4.wind_y.mae",
+      "value": 0.019632578204911495,
+      "ci95": [
+        0.01870351069601913,
+        0.020587412808553005
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZBAA.T+4.wind_y.rmse": {
+      "name": "forecast.ZBAA.T+4.wind_y.rmse",
+      "value": 0.0437016543517918,
+      "ci95": [
+        0.04063633547470223,
+        0.046997506728154496
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZBAA.T+8.wind_x.mae": {
+      "name": "forecast.ZBAA.T+8.wind_x.mae",
+      "value": 0.030845077250516276,
+      "ci95": [
+        0.02886912539769411,
+        0.03292593839950443
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZBAA.T+8.wind_x.rmse": {
+      "name": "forecast.ZBAA.T+8.wind_x.rmse",
+      "value": 0.05862370706886454,
+      "ci95": [
+        0.05405127127164714,
+        0.06353963499871845
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZBAA.T+8.wind_y.mae": {
+      "name": "forecast.ZBAA.T+8.wind_y.mae",
+      "value": 0.022076709632457774,
+      "ci95": [
+        0.021110485297567406,
+        0.02307017530798966
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZBAA.T+8.wind_y.rmse": {
+      "name": "forecast.ZBAA.T+8.wind_y.rmse",
+      "value": 0.04533924393474489,
+      "ci95": [
+        0.04222524392727703,
+        0.04842558040487597
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSPD.T+1.wind_x.mae": {
+      "name": "forecast.ZSPD.T+1.wind_x.mae",
+      "value": 0.022419085102438025,
+      "ci95": [
+        0.020559522614991655,
+        0.024406757350004412
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSPD.T+1.wind_x.rmse": {
+      "name": "forecast.ZSPD.T+1.wind_x.rmse",
+      "value": 0.047640647565775816,
+      "ci95": [
+        0.041966597071854274,
+        0.05316743419212539
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSPD.T+1.wind_y.mae": {
+      "name": "forecast.ZSPD.T+1.wind_y.mae",
+      "value": 0.017032658069799044,
+      "ci95": [
+        0.015731137112309786,
+        0.01847981432640925
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSPD.T+1.wind_y.rmse": {
+      "name": "forecast.ZSPD.T+1.wind_y.rmse",
+      "value": 0.035528862736873314,
+      "ci95": [
+        0.030972146630114425,
+        0.04052355129317374
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSPD.T+4.wind_x.mae": {
+      "name": "forecast.ZSPD.T+4.wind_x.mae",
+      "value": 0.0291649074676605,
+      "ci95": [
+        0.027099495157473397,
+        0.0313621402975845
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSPD.T+4.wind_x.rmse": {
+      "name": "forecast.ZSPD.T+4.wind_x.rmse",
+      "value": 0.05428405708234235,
+      "ci95": [
+        0.04945943674299451,
+        0.05954510182593234
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSPD.T+4.wind_y.mae": {
+      "name": "forecast.ZSPD.T+4.wind_y.mae",
+      "value": 0.020283022141830167,
+      "ci95": [
+        0.018677970867310052,
+        0.022061079277606005
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSPD.T+4.wind_y.rmse": {
+      "name": "forecast.ZSPD.T+4.wind_y.rmse",
+      "value": 0.040018967235863005,
+      "ci95": [
+        0.03549939515711048,
+        0.04489552513818297
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSPD.T+8.wind_x.mae": {
+      "name": "forecast.ZSPD.T+8.wind_x.mae",
+      "value": 0.03326922717492188,
+      "ci95": [
+        0.030676122289057164,
+        0.036111881614695966
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSPD.T+8.wind_x.rmse": {
+      "name": "forecast.ZSPD.T+8.wind_x.rmse",
+      "value": 0.058024812568212104,
+      "ci95": [
+        0.051780967159481474,
+        0.06428321400308146
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSPD.T+8.wind_y.mae": {
+      "name": "forecast.ZSPD.T+8.wind_y.mae",
+      "value": 0.02431719590901062,
+      "ci95": [
+        0.02250940412490345,
+        0.026177338234634907
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSPD.T+8.wind_y.rmse": {
+      "name": "forecast.ZSPD.T+8.wind_y.rmse",
+      "value": 0.042741535491723846,
+      "ci95": [
+        0.03819646132126618,
+        0.04797250433012402
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSSS.T+1.wind_x.mae": {
+      "name": "forecast.ZSSS.T+1.wind_x.mae",
+      "value": 0.022871653871102765,
+      "ci95": [
+        0.020934246979143104,
+        0.025081993306121604
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSSS.T+1.wind_x.rmse": {
+      "name": "forecast.ZSSS.T+1.wind_x.rmse",
+      "value": 0.049108536246220885,
+      "ci95": [
+        0.04301304598119898,
+        0.05510083302893036
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSSS.T+1.wind_y.mae": {
+      "name": "forecast.ZSSS.T+1.wind_y.mae",
+      "value": 0.017917995995870142,
+      "ci95": [
+        0.016577793765619495,
+        0.019332935549790944
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSSS.T+1.wind_y.rmse": {
+      "name": "forecast.ZSSS.T+1.wind_y.rmse",
+      "value": 0.04077132520644519,
+      "ci95": [
+        0.036317576940138235,
+        0.045192939424334805
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSSS.T+4.wind_x.mae": {
+      "name": "forecast.ZSSS.T+4.wind_x.mae",
+      "value": 0.027087967678064765,
+      "ci95": [
+        0.024783362971573526,
+        0.029543140027214157
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSSS.T+4.wind_x.rmse": {
+      "name": "forecast.ZSSS.T+4.wind_x.rmse",
+      "value": 0.058216506734743816,
+      "ci95": [
+        0.05159474103874065,
+        0.06552135865026698
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSSS.T+4.wind_y.mae": {
+      "name": "forecast.ZSSS.T+4.wind_y.mae",
+      "value": 0.02105656812437743,
+      "ci95": [
+        0.019861693169473154,
+        0.022352774130855946
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSSS.T+4.wind_y.rmse": {
+      "name": "forecast.ZSSS.T+4.wind_y.rmse",
+      "value": 0.04360377943493918,
+      "ci95": [
+        0.03951150038573893,
+        0.047596620602999955
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSSS.T+8.wind_x.mae": {
+      "name": "forecast.ZSSS.T+8.wind_x.mae",
+      "value": 0.035169939560706846,
+      "ci95": [
+        0.03261992941035873,
+        0.03824998605288516
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSSS.T+8.wind_x.rmse": {
+      "name": "forecast.ZSSS.T+8.wind_x.rmse",
+      "value": 0.06124343661803494,
+      "ci95": [
+        0.05378821540614953,
+        0.07001728089394597
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSSS.T+8.wind_y.mae": {
+      "name": "forecast.ZSSS.T+8.wind_y.mae",
+      "value": 0.024318011354606966,
+      "ci95": [
+        0.022886662981857195,
+        0.025765690569597488
+      ],
+      "degenerate": false
+    },
+    "forecast_scratch.forecast.ZSSS.T+8.wind_y.rmse": {
+      "name": "forecast.ZSSS.T+8.wind_y.rmse",
+      "value": 0.04586148562984531,
+      "ci95": [
+        0.04205156828364241,
+        0.050040538897690987
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.policy.RMSE_macro_norm": {
+      "source_metric": "overall.forecast.rmse",
+      "value": 0.051919108599113,
+      "ci95": [
+        0.04759140157561308,
+        0.056494845190735915
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.policy.MAE_macro_norm": {
+      "source_metric": "overall.forecast.mae",
+      "value": 0.02984540066422155,
+      "ci95": [
+        0.027903406528845667,
+        0.031959010454776476
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZBAA.T+1.wind_x.mae": {
+      "name": "forecast.ZBAA.T+1.wind_x.mae",
+      "value": 0.03209972340826836,
+      "ci95": [
+        0.03003213088230914,
+        0.03445156713121147
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZBAA.T+1.wind_x.rmse": {
+      "name": "forecast.ZBAA.T+1.wind_x.rmse",
+      "value": 0.056744872018417186,
+      "ci95": [
+        0.052892408473660106,
+        0.06052699367378618
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZBAA.T+1.wind_y.mae": {
+      "name": "forecast.ZBAA.T+1.wind_y.mae",
+      "value": 0.03148403900239604,
+      "ci95": [
+        0.02869931541404366,
+        0.034331861810453945
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZBAA.T+1.wind_y.rmse": {
+      "name": "forecast.ZBAA.T+1.wind_y.rmse",
+      "value": 0.049568725289038974,
+      "ci95": [
+        0.046636665380956836,
+        0.052363376512439996
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZBAA.T+4.wind_x.mae": {
+      "name": "forecast.ZBAA.T+4.wind_x.mae",
+      "value": 0.029040128213555318,
+      "ci95": [
+        0.02731470763533369,
+        0.030926319263961517
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZBAA.T+4.wind_x.rmse": {
+      "name": "forecast.ZBAA.T+4.wind_x.rmse",
+      "value": 0.057960242776643384,
+      "ci95": [
+        0.05379044197298278,
+        0.06230707249116375
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZBAA.T+4.wind_y.mae": {
+      "name": "forecast.ZBAA.T+4.wind_y.mae",
+      "value": 0.024890399301286073,
+      "ci95": [
+        0.023825489134625663,
+        0.026019624430814244
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZBAA.T+4.wind_y.rmse": {
+      "name": "forecast.ZBAA.T+4.wind_y.rmse",
+      "value": 0.04716447023235427,
+      "ci95": [
+        0.04431264803966041,
+        0.05020483571372511
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZBAA.T+8.wind_x.mae": {
+      "name": "forecast.ZBAA.T+8.wind_x.mae",
+      "value": 0.03325565743731833,
+      "ci95": [
+        0.0315952782671777,
+        0.03516854438598135
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZBAA.T+8.wind_x.rmse": {
+      "name": "forecast.ZBAA.T+8.wind_x.rmse",
+      "value": 0.05970052124874997,
+      "ci95": [
+        0.05563151500829125,
+        0.06402161914412713
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZBAA.T+8.wind_y.mae": {
+      "name": "forecast.ZBAA.T+8.wind_y.mae",
+      "value": 0.03508130101170867,
+      "ci95": [
+        0.03266589516432816,
+        0.03776029335988326
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZBAA.T+8.wind_y.rmse": {
+      "name": "forecast.ZBAA.T+8.wind_y.rmse",
+      "value": 0.05356843613744,
+      "ci95": [
+        0.050762414927738565,
+        0.056478774302549335
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSPD.T+1.wind_x.mae": {
+      "name": "forecast.ZSPD.T+1.wind_x.mae",
+      "value": 0.033149358642409844,
+      "ci95": [
+        0.03117136268124776,
+        0.03518552304098026
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSPD.T+1.wind_x.rmse": {
+      "name": "forecast.ZSPD.T+1.wind_x.rmse",
+      "value": 0.05391415604878256,
+      "ci95": [
+        0.04944650204584801,
+        0.05855111556075747
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSPD.T+1.wind_y.mae": {
+      "name": "forecast.ZSPD.T+1.wind_y.mae",
+      "value": 0.02589585426065958,
+      "ci95": [
+        0.024100955060066463,
+        0.027902673982662354
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSPD.T+1.wind_y.rmse": {
+      "name": "forecast.ZSPD.T+1.wind_y.rmse",
+      "value": 0.04139428653901466,
+      "ci95": [
+        0.037407272497322355,
+        0.04577478530566587
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSPD.T+4.wind_x.mae": {
+      "name": "forecast.ZSPD.T+4.wind_x.mae",
+      "value": 0.03289786576358604,
+      "ci95": [
+        0.03050682081525209,
+        0.035382430369504336
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSPD.T+4.wind_x.rmse": {
+      "name": "forecast.ZSPD.T+4.wind_x.rmse",
+      "value": 0.055851441641780665,
+      "ci95": [
+        0.051087477214825906,
+        0.060715669779657616
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSPD.T+4.wind_y.mae": {
+      "name": "forecast.ZSPD.T+4.wind_y.mae",
+      "value": 0.024089702514948977,
+      "ci95": [
+        0.02263763901064749,
+        0.025670147238260208
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSPD.T+4.wind_y.rmse": {
+      "name": "forecast.ZSPD.T+4.wind_y.rmse",
+      "value": 0.04174672374103565,
+      "ci95": [
+        0.037911440498769995,
+        0.04589426400807524
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSPD.T+8.wind_x.mae": {
+      "name": "forecast.ZSPD.T+8.wind_x.mae",
+      "value": 0.03486054874683313,
+      "ci95": [
+        0.032259519134845864,
+        0.03750929548828967
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSPD.T+8.wind_x.rmse": {
+      "name": "forecast.ZSPD.T+8.wind_x.rmse",
+      "value": 0.05739522515134548,
+      "ci95": [
+        0.051866606667479206,
+        0.06270416443718999
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSPD.T+8.wind_y.mae": {
+      "name": "forecast.ZSPD.T+8.wind_y.mae",
+      "value": 0.026948248945382045,
+      "ci95": [
+        0.025183060727149327,
+        0.02886570293266326
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSPD.T+8.wind_y.rmse": {
+      "name": "forecast.ZSPD.T+8.wind_y.rmse",
+      "value": 0.04482129543868714,
+      "ci95": [
+        0.040523042195740835,
+        0.049775703786331116
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSSS.T+1.wind_x.mae": {
+      "name": "forecast.ZSSS.T+1.wind_x.mae",
+      "value": 0.030898265439000996,
+      "ci95": [
+        0.02911033357296362,
+        0.03286868366003796
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSSS.T+1.wind_x.rmse": {
+      "name": "forecast.ZSSS.T+1.wind_x.rmse",
+      "value": 0.05598366207561453,
+      "ci95": [
+        0.05058974653196264,
+        0.061378777949083835
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSSS.T+1.wind_y.mae": {
+      "name": "forecast.ZSSS.T+1.wind_y.mae",
+      "value": 0.026871893206855867,
+      "ci95": [
+        0.025141121172667008,
+        0.028730950684056206
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSSS.T+1.wind_y.rmse": {
+      "name": "forecast.ZSSS.T+1.wind_y.rmse",
+      "value": 0.045350990380997366,
+      "ci95": [
+        0.04188192657537068,
+        0.04910419470614891
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSSS.T+4.wind_x.mae": {
+      "name": "forecast.ZSSS.T+4.wind_x.mae",
+      "value": 0.03131457510653065,
+      "ci95": [
+        0.02910222988523411,
+        0.03377583459831129
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSSS.T+4.wind_x.rmse": {
+      "name": "forecast.ZSSS.T+4.wind_x.rmse",
+      "value": 0.059125445957855696,
+      "ci95": [
+        0.052587447046428995,
+        0.06676662840502809
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSSS.T+4.wind_y.mae": {
+      "name": "forecast.ZSSS.T+4.wind_y.mae",
+      "value": 0.02537568583651447,
+      "ci95": [
+        0.024035369919994165,
+        0.026871231960971752
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSSS.T+4.wind_y.rmse": {
+      "name": "forecast.ZSSS.T+4.wind_y.rmse",
+      "value": 0.04583834737022789,
+      "ci95": [
+        0.04201801822527974,
+        0.04941329110349367
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSSS.T+8.wind_x.mae": {
+      "name": "forecast.ZSSS.T+8.wind_x.mae",
+      "value": 0.03124518557542371,
+      "ci95": [
+        0.028629858368939755,
+        0.034399672527061276
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSSS.T+8.wind_x.rmse": {
+      "name": "forecast.ZSSS.T+8.wind_x.rmse",
+      "value": 0.060271177816181645,
+      "ci95": [
+        0.052613898463275514,
+        0.0691036963310064
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSSS.T+8.wind_y.mae": {
+      "name": "forecast.ZSSS.T+8.wind_y.mae",
+      "value": 0.027818779543309823,
+      "ci95": [
+        0.026250230672396308,
+        0.029441831320872143
+      ],
+      "degenerate": false
+    },
+    "forecast_pretrained.forecast.ZSSS.T+8.wind_y.rmse": {
+      "name": "forecast.ZSSS.T+8.wind_y.rmse",
+      "value": 0.04814393491986687,
+      "ci95": [
+        0.0446857565954418,
+        0.05182225022301671
+      ],
+      "degenerate": false
+    },
+    "classification_scratch.policy.classification_macro_f1": {
+      "source_metric": "overall.classification.macro_f1",
+      "value": 0.7503480172247198,
+      "ci95": [
+        0.45338085656609317,
+        0.8589405944636456
+      ],
+      "degenerate": false
+    },
+    "classification_scratch.policy.classification_csi_macro": {
+      "source_metric": "overall.classification.csi_macro",
+      "value": 0.6267945687869917,
+      "ci95": [
+        0.404969216436988,
+        0.7606033571005731
+      ],
+      "degenerate": false
+    },
+    "classification_scratch.policy.hazard_class_f1": {
+      "source_metric": "overall.classification.f1_class_hazard",
+      "value": 0.6330935251798561,
+      "ci95": [
+        0.0,
+        0.8037383177570093
+      ],
+      "degenerate": false
+    },
+    "classification_scratch.classification.ZBAA.csi_good": {
+      "name": "classification.ZBAA.csi_good",
+      "value": 0.9326897291499061,
+      "ci95": [
+        0.8754745208266658,
+        0.975869524725948
+      ],
+      "support": 3627,
+      "fp": 102,
+      "false_positive_only": false,
+      "event_rate": 0.9156778591264833,
+      "degenerate": false
+    },
+    "classification_scratch.classification.ZBAA.f1_good": {
+      "name": "classification.ZBAA.f1_good",
+      "value": 0.9651727487165256,
+      "ci95": [
+        0.9336032123771352,
+        0.9877874129549337
+      ],
+      "support": 3627,
+      "fp": 102,
+      "false_positive_only": false,
+      "event_rate": 0.9156778591264833,
+      "degenerate": false
+    },
+    "classification_scratch.classification.ZBAA.csi_precip": {
+      "name": "classification.ZBAA.csi_precip",
+      "value": 0.4845360824742268,
+      "ci95": [
+        0.09624388440095576,
+        0.7806762258806867
+      ],
+      "support": 240,
+      "fp": 148,
+      "false_positive_only": false,
+      "event_rate": 0.06059075990911386,
+      "degenerate": false
+    },
+    "classification_scratch.classification.ZBAA.f1_precip": {
+      "name": "classification.ZBAA.f1_precip",
+      "value": 0.6527777777777778,
+      "ci95": [
+        0.17558844423395692,
+        0.876831187969589
+      ],
+      "support": 240,
+      "fp": 148,
+      "false_positive_only": false,
+      "event_rate": 0.06059075990911386,
+      "degenerate": false
+    },
+    "classification_scratch.classification.ZBAA.csi_class_hazard": {
+      "name": "classification.ZBAA.csi_class_hazard",
+      "value": 0.4631578947368421,
+      "ci95": [
+        0.0,
+        0.671875
+      ],
+      "support": 94,
+      "fp": 1,
+      "false_positive_only": false,
+      "event_rate": 0.02373138096440293,
+      "degenerate": false
+    },
+    "classification_scratch.classification.ZBAA.f1_class_hazard": {
+      "name": "classification.ZBAA.f1_class_hazard",
+      "value": 0.6330935251798561,
+      "ci95": [
+        0.0,
+        0.8037383177570093
+      ],
+      "support": 94,
+      "fp": 1,
+      "false_positive_only": false,
+      "event_rate": 0.02373138096440293,
+      "degenerate": false
+    },
+    "classification_scratch.classification.ZBAA.macro_f1": {
+      "name": "classification.ZBAA.macro_f1",
+      "value": 0.7503480172247198,
+      "ci95": [
+        0.45338085656609317,
+        0.8589405944636456
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 3
+    },
+    "classification_scratch.classification.ZBAA.csi_macro": {
+      "name": "classification.ZBAA.csi_macro",
+      "value": 0.6267945687869917,
+      "ci95": [
+        0.404969216436988,
+        0.7606033571005731
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 3
+    },
+    "classification_scratch.classification.ZSPD.csi_good": {
+      "name": "classification.ZSPD.csi_good",
+      "value": 0.9962130775056803,
+      "ci95": [
+        0.9926679875108136,
+        0.999000499750125
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    "classification_scratch.classification.ZSPD.f1_good": {
+      "name": "classification.ZSPD.f1_good",
+      "value": 0.998102946756039,
+      "ci95": [
+        0.9963205047020525,
+        0.9995
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    "classification_scratch.classification.ZSPD.csi_precip": {
+      "name": "classification.ZSPD.csi_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 15,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_scratch.classification.ZSPD.f1_precip": {
+      "name": "classification.ZSPD.f1_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 15,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_scratch.classification.ZSPD.csi_class_hazard": {
+      "name": "classification.ZSPD.csi_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_scratch.classification.ZSPD.f1_class_hazard": {
+      "name": "classification.ZSPD.f1_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_scratch.classification.ZSPD.macro_f1": {
+      "name": "classification.ZSPD.macro_f1",
+      "value": 0.998102946756039,
+      "ci95": [
+        0.996352884293667,
+        0.9995037220843672
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    "classification_scratch.classification.ZSPD.csi_macro": {
+      "name": "classification.ZSPD.csi_macro",
+      "value": 0.9962130775056803,
+      "ci95": [
+        0.9926222247675464,
+        0.9992503748125937
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    "classification_scratch.classification.ZSSS.csi_good": {
+      "name": "classification.ZSSS.csi_good",
+      "value": 0.9848523100227216,
+      "ci95": [
+        0.9620282177592065,
+        0.9979709565129422
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    "classification_scratch.classification.ZSSS.f1_good": {
+      "name": "classification.ZSSS.f1_good",
+      "value": 0.9923683541083693,
+      "ci95": [
+        0.9806466684940195,
+        0.9989844479554055
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    "classification_scratch.classification.ZSSS.csi_precip": {
+      "name": "classification.ZSSS.csi_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 60,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_scratch.classification.ZSSS.f1_precip": {
+      "name": "classification.ZSSS.f1_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 60,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_scratch.classification.ZSSS.csi_class_hazard": {
+      "name": "classification.ZSSS.csi_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_scratch.classification.ZSSS.f1_class_hazard": {
+      "name": "classification.ZSSS.f1_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_scratch.classification.ZSSS.macro_f1": {
+      "name": "classification.ZSSS.macro_f1",
+      "value": 0.9923683541083693,
+      "ci95": [
+        0.980570161757786,
+        0.9989994997498749
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    "classification_scratch.classification.ZSSS.csi_macro": {
+      "name": "classification.ZSSS.csi_macro",
+      "value": 0.9848523100227216,
+      "ci95": [
+        0.962360594459404,
+        0.998015873015873
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    "classification_pretrained.policy.classification_macro_f1": {
+      "source_metric": "overall.classification.macro_f1",
+      "value": 0.8036497691430459,
+      "ci95": [
+        0.4935960504545012,
+        0.8941865695741433
+      ],
+      "degenerate": false
+    },
+    "classification_pretrained.policy.classification_csi_macro": {
+      "source_metric": "overall.classification.csi_macro",
+      "value": 0.6938802191024681,
+      "ci95": [
+        0.4333270685080859,
+        0.8270911487075083
+      ],
+      "degenerate": false
+    },
+    "classification_pretrained.policy.hazard_class_f1": {
+      "source_metric": "overall.classification.f1_class_hazard",
+      "value": 0.7885714285714286,
+      "ci95": [
+        0.0,
+        0.9792746113989638
+      ],
+      "degenerate": false
+    },
+    "classification_pretrained.classification.ZBAA.csi_good": {
+      "name": "classification.ZBAA.csi_good",
+      "value": 0.9532536520584329,
+      "ci95": [
+        0.9074220788360361,
+        0.986185475361692
+      ],
+      "support": 3627,
+      "fp": 138,
+      "false_positive_only": false,
+      "event_rate": 0.9156778591264833,
+      "degenerate": false
+    },
+    "classification_pretrained.classification.ZBAA.f1_good": {
+      "name": "classification.ZBAA.f1_good",
+      "value": 0.9760674462877346,
+      "ci95": [
+        0.9514643758169737,
+        0.9930446955307437
+      ],
+      "support": 3627,
+      "fp": 138,
+      "false_positive_only": false,
+      "event_rate": 0.9156778591264833,
+      "degenerate": false
+    },
+    "classification_pretrained.classification.ZBAA.csi_precip": {
+      "name": "classification.ZBAA.csi_precip",
+      "value": 0.4774436090225564,
+      "ci95": [
+        0.18867924528301888,
+        0.6407766990291263
+      ],
+      "support": 240,
+      "fp": 26,
+      "false_positive_only": false,
+      "event_rate": 0.06059075990911386,
+      "degenerate": false
+    },
+    "classification_pretrained.classification.ZBAA.f1_precip": {
+      "name": "classification.ZBAA.f1_precip",
+      "value": 0.6463104325699746,
+      "ci95": [
+        0.31746031746031744,
+        0.7810650887573964
+      ],
+      "support": 240,
+      "fp": 26,
+      "false_positive_only": false,
+      "event_rate": 0.06059075990911386,
+      "degenerate": false
+    },
+    "classification_pretrained.classification.ZBAA.csi_class_hazard": {
+      "name": "classification.ZBAA.csi_class_hazard",
+      "value": 0.6509433962264151,
+      "ci95": [
+        0.0,
+        0.9593908629441624
+      ],
+      "support": 94,
+      "fp": 12,
+      "false_positive_only": false,
+      "event_rate": 0.02373138096440293,
+      "degenerate": false
+    },
+    "classification_pretrained.classification.ZBAA.f1_class_hazard": {
+      "name": "classification.ZBAA.f1_class_hazard",
+      "value": 0.7885714285714286,
+      "ci95": [
+        0.0,
+        0.9792746113989638
+      ],
+      "support": 94,
+      "fp": 12,
+      "false_positive_only": false,
+      "event_rate": 0.02373138096440293,
+      "degenerate": false
+    },
+    "classification_pretrained.classification.ZBAA.macro_f1": {
+      "name": "classification.ZBAA.macro_f1",
+      "value": 0.8036497691430459,
+      "ci95": [
+        0.4935960504545012,
+        0.8941865695741433
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 3
+    },
+    "classification_pretrained.classification.ZBAA.csi_macro": {
+      "name": "classification.ZBAA.csi_macro",
+      "value": 0.6938802191024681,
+      "ci95": [
+        0.4333270685080859,
+        0.8270911487075083
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 3
+    },
+    "classification_pretrained.classification.ZSPD.csi_good": {
+      "name": "classification.ZSPD.csi_good",
+      "value": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    "classification_pretrained.classification.ZSPD.f1_good": {
+      "name": "classification.ZSPD.f1_good",
+      "value": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    "classification_pretrained.classification.ZSPD.csi_precip": {
+      "name": "classification.ZSPD.csi_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_pretrained.classification.ZSPD.f1_precip": {
+      "name": "classification.ZSPD.f1_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_pretrained.classification.ZSPD.csi_class_hazard": {
+      "name": "classification.ZSPD.csi_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_pretrained.classification.ZSPD.f1_class_hazard": {
+      "name": "classification.ZSPD.f1_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_pretrained.classification.ZSPD.macro_f1": {
+      "name": "classification.ZSPD.macro_f1",
+      "value": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    "classification_pretrained.classification.ZSPD.csi_macro": {
+      "name": "classification.ZSPD.csi_macro",
+      "value": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    "classification_pretrained.classification.ZSSS.csi_good": {
+      "name": "classification.ZSSS.csi_good",
+      "value": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    "classification_pretrained.classification.ZSSS.f1_good": {
+      "name": "classification.ZSSS.f1_good",
+      "value": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    "classification_pretrained.classification.ZSSS.csi_precip": {
+      "name": "classification.ZSSS.csi_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_pretrained.classification.ZSSS.f1_precip": {
+      "name": "classification.ZSSS.f1_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_pretrained.classification.ZSSS.csi_class_hazard": {
+      "name": "classification.ZSSS.csi_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_pretrained.classification.ZSSS.f1_class_hazard": {
+      "name": "classification.ZSSS.f1_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    "classification_pretrained.classification.ZSSS.macro_f1": {
+      "name": "classification.ZSSS.macro_f1",
+      "value": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    "classification_pretrained.classification.ZSSS.csi_macro": {
+      "name": "classification.ZSSS.csi_macro",
+      "value": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    }
+  },
+  "paired_delta_vs_parent": {
+    "forecast_scratch.RMSE_macro_norm": -4.2e-05,
+    "forecast_scratch.MAE_macro_norm": -0.001333,
+    "forecast_pretrained.RMSE_macro_norm": 0.001014,
+    "forecast_pretrained.MAE_macro_norm": 0.00136,
+    "classification_scratch.classification_macro_f1": -2e-06,
+    "classification_scratch.classification_csi_macro": 5e-06,
+    "classification_scratch.hazard_class_f1": 4e-06,
+    "classification_pretrained.classification_macro_f1": -0.0,
+    "classification_pretrained.classification_csi_macro": 0.0,
+    "classification_pretrained.hazard_class_f1": 1e-06
+  },
+  "artifact_digests": {
+    "edit_sha256": "1bf14947fd19ba3eaeee99678a638bbf3ab71c4730c53e926db1088fa97f4279",
+    "ckpt.pretrain": "372342935c8273f966d9e30589a1e6bac90b55fddd8a9caa082f4fee3fc69ce8",
+    "ckpt.forecast_scratch": "5eb5262dec4573e746669ee0716daa1330fd1855121d4e0e9edf43570e85a2a1",
+    "ckpt.forecast_pretrained": "ce53aa434a4ede045482331b0fa9bb33f1007e7fa48b8a0823ef76a93d9cbcc2",
+    "ckpt.classification_scratch": "8159e13b1135de668c33ba4f813648ea565ffec7906f2150a5e555eb52882b98",
+    "ckpt.classification_pretrained": "e48d7ec49ad1966aa69aae14464fbb2dffc7c526bb7224b89f72dfd614bda3b6"
+  },
+  "resource_usage": {
+    "gpu_hours": 1.386,
+    "gpu_model": "RTX3090"
+  },
+  "hypothesis_verdict": "refuted",
+  "execution_deviations": [],
+  "evaluation_manifest_digest": "9c568a10bbba5b3a06e55645a6def3c87a18f26559e2cfae00573d71daedf9b1",
+  "created_at_utc": "2026-08-29T15:53:04Z",
+  "guardrail_check": {
+    "mode": "advisory_single_seed",
+    "breaches": [
+      "none"
+    ],
+    "note": "正式 guardrail 判定在 3-seed 确认阶段执行（decision_policy v1.1）"
+  },
+  "screen_pass": false
+}

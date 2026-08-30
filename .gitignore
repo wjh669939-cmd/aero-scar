@@ -11,3 +11,6 @@ runs/
 c_evaluator_private/
 *.stdout
 *.stderr
+
+# 私人计划文档不入仓（2026-08-30）
+docs/iclr2027_plan/

@@ -1,0 +1,19 @@
+
+===== RANDOM TRIAL 500 action=O1-horizon-weighted-mse params={'weights_t1_t4_t8': [3, 1, 1]} 2026-08-30T02:06:54Z =====
+[adapter warning] 3 个真实跑道预测值越界 [0,1]，原值保留提交（evaluator v1.0.1 容忍带内照常计分，超限判 invalid；禁止 clip）
+TRIAL_OUTCOME: {"trial_id": "rand-obj-500", "event": null, "status": "completed", "paired_delta_vs_parent": {"forecast_scratch.RMSE_macro_norm": -7.6e-05, "forecast_scratch.MAE_macro_norm": -0.001013, "forecast_pretrained.RMSE_macro_norm": 0.000274, "forecast_pretrained.MAE_macro_norm": 0.000368, "classification_scratch.classification_macro_f1": -2e-06, "classification_scratch.classification_csi_macro": 5e-06, "classification_scratch.hazard_class_f1": 4e-06, "classification_pretrained.classification_macro_f1": -0.0, "classification_pretrained.classification_csi_macro": 0.0, "classification_pretrained.hazard_class_f1": 1e-06}, "screen_pass": false, "hypothesis_verdict": "refuted"}
+
+===== RANDOM TRIAL 501 action=R4-runway-frame-wind params={'components': ['gust_crosswind']} 2026-08-30T03:21:42Z =====
+TRIAL_OUTCOME: {"trial_id": "rand-rep-501", "event": null, "status": "completed", "paired_delta_vs_parent": {"forecast_scratch.RMSE_macro_norm": 0.003773, "forecast_scratch.MAE_macro_norm": 0.003822, "forecast_pretrained.RMSE_macro_norm": 0.002991, "forecast_pretrained.MAE_macro_norm": 0.002032, "classification_scratch.classification_macro_f1": -0.056178, "classification_scratch.classification_csi_macro": -0.049389, "classification_scratch.hazard_class_f1": -0.228398, "classification_pretrained.classification_macro_f1": -0.017569, "classification_pretrained.classification_csi_macro": -0.023229, "classification_pretrained.hazard_class_f1": -0.041735}, "screen_pass": false, "hypothesis_verdict": "refuted"}
+
+===== RANDOM TRIAL 502 action=R6-multiscale-diff params={'diff_steps': [4], 'rolling_var_window': 8} 2026-08-30T04:40:08Z =====
+TRIAL_OUTCOME: {"trial_id": "rand-rep-502", "event": "smoke_rejected", "status": null, "paired_delta_vs_parent": null, "screen_pass": null, "hypothesis_verdict": null}
+
+===== RANDOM TRIAL 503 action=O1-horizon-weighted-mse params={'weights_t1_t4_t8': [3, 1, 1]} 2026-08-30T04:40:09Z =====
+[adapter warning] 3 个真实跑道预测值越界 [0,1]，原值保留提交（evaluator v1.0.1 容忍带内照常计分，超限判 invalid；禁止 clip）
+TRIAL_OUTCOME: {"trial_id": "rand-obj-503", "event": null, "status": "completed", "paired_delta_vs_parent": {"forecast_scratch.RMSE_macro_norm": -7.6e-05, "forecast_scratch.MAE_macro_norm": -0.001013, "forecast_pretrained.RMSE_macro_norm": 0.000274, "forecast_pretrained.MAE_macro_norm": 0.000368, "classification_scratch.classification_macro_f1": -2e-06, "classification_scratch.classification_csi_macro": 5e-06, "classification_scratch.hazard_class_f1": 4e-06, "classification_pretrained.classification_macro_f1": -0.0, "classification_pretrained.classification_csi_macro": 0.0, "classification_pretrained.hazard_class_f1": 1e-06}, "screen_pass": false, "hypothesis_verdict": "refuted"}
+
+===== RANDOM TRIAL 504 action=R4-runway-frame-wind params={'components': ['crosswind', 'gust_crosswind', 'headwind']} 2026-08-30T05:55:15Z =====
+TRIAL_OUTCOME: {"trial_id": "rand-rep-504", "event": null, "status": "completed", "paired_delta_vs_parent": {"forecast_scratch.RMSE_macro_norm": 0.002235, "forecast_scratch.MAE_macro_norm": 0.000163, "forecast_pretrained.RMSE_macro_norm": 0.004426, "forecast_pretrained.MAE_macro_norm": 0.004687, "classification_scratch.classification_macro_f1": 0.032593, "classification_scratch.classification_csi_macro": 0.040116, "classification_scratch.hazard_class_f1": 0.134206, "classification_pretrained.classification_macro_f1": -0.026771, "classification_pretrained.classification_csi_macro": -0.033814, "classification_pretrained.hazard_class_f1": -0.061297}, "screen_pass": false, "hypothesis_verdict": "refuted"}
+
+===== RANDOM TRIAL 505 action=R5-wind-cyclic-encoding params={'variant': 'sincos_plus_speed_decouple'} 2026-08-30T07:07:19Z =====

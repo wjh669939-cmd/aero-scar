@@ -1,0 +1,31 @@
+{
+  "trial_id": "llm-obj-202",
+  "arm": "llm",
+  "axis": "objective_tier1",
+  "tier": 1,
+  "parent_trial": "parent-seed42-formal",
+  "action_id": "O3-classwise-focal",
+  "is_free_proposal": false,
+  "hypothesis": "Replacing the current class-weight treatment with a class-frequency-calibrated focal loss (inverse-frequency alpha and gamma=2.0) will upweight low-support hazardous/precipitation classes and hard examples, improving hazard_class_f1 and overall macro_f1 without materially harming forecast RMSE.",
+  "evidence_anchor": "Hazard class F1 fluctuates from 0.53 to 0.79 across seeds; ZBAA hazard support is only 94 and ZSPD/ZSSS val labels are near single-class; baseline scratch classification_macro_f1 is only 0.750 vs pretrained 0.804.",
+  "target_slices": [
+    "classification_macro_f1",
+    "hazard_class_f1",
+    "ZBAA.f1_class_hazard"
+  ],
+  "expected_effect": "classification_macro_f1 improves by >0.005; hazard_class_f1 stabilizes or increases; forecast RMSE remains approximately unchanged.",
+  "falsification": "If paired classification_macro_f1 improvement versus parent is <0.0005, or hazard_class_f1 decreases, the trial is refuted.",
+  "editable_paths": [
+    "aerowf_downstream_v2/src/trial_objective.py"
+  ],
+  "patch_plan": "In compute_class_weights, form class alpha from train_label_counts using inverse_freq. In classification_loss, implement focal loss as -alpha_c * (1 - p_c)^gamma * log(p_c) with gamma=2.0 and the passed class_weights, while preserving signature and guarding masked/virtual runway cases.",
+  "non_expressibility": "",
+  "budget": {
+    "gpu_hours_cap": 1.0,
+    "seeds": [
+      42
+    ]
+  },
+  "created_at_utc": "2026-08-30T06:14:51Z",
+  "forced_free_round": false
+}

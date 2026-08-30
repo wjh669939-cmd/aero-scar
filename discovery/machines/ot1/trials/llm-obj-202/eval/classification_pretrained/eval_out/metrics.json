@@ -1,0 +1,435 @@
+{
+  "status": "completed",
+  "task": "classification",
+  "split": "val",
+  "task_contract_version": "2.0",
+  "contract_sha256": "2e55c519acc44075707157813cd7a1199d6e595317c9a730b895296c80385be8",
+  "data_release": "AeroWF_v1",
+  "metric_scale": "normalized_[0,1]",
+  "forecast_protocol": null,
+  "trial": {
+    "arm": "llm",
+    "checkpoint_digest": "classification_pretrained",
+    "seed": 42,
+    "task": "classification",
+    "trial_id": "llm-obj-202"
+  },
+  "endpoints": [
+    {
+      "name": "classification.ZBAA.csi_good",
+      "value": 0.9460732984293194,
+      "ci95": [
+        0.8940235585515814,
+        0.9836383726121385
+      ],
+      "support": 3627,
+      "fp": 193,
+      "false_positive_only": false,
+      "event_rate": 0.9156778591264833,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.f1_good",
+      "value": 0.9722894807640571,
+      "ci95": [
+        0.9440469230106538,
+        0.991751708530261
+      ],
+      "support": 3627,
+      "fp": 193,
+      "false_positive_only": false,
+      "event_rate": 0.9156778591264833,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.csi_precip",
+      "value": 0.32916666666666666,
+      "ci95": [
+        0.0,
+        0.4909090909090909
+      ],
+      "support": 240,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.06059075990911386,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.f1_precip",
+      "value": 0.4952978056426332,
+      "ci95": [
+        0.0,
+        0.6585365853658537
+      ],
+      "support": 240,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.06059075990911386,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.csi_class_hazard",
+      "value": 0.5794392523364486,
+      "ci95": [
+        0.0,
+        0.875
+      ],
+      "support": 94,
+      "fp": 13,
+      "false_positive_only": false,
+      "event_rate": 0.02373138096440293,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.f1_class_hazard",
+      "value": 0.7337278106508875,
+      "ci95": [
+        0.0,
+        0.9333333333333333
+      ],
+      "support": 94,
+      "fp": 13,
+      "false_positive_only": false,
+      "event_rate": 0.02373138096440293,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.macro_f1",
+      "value": 0.7337716990191927,
+      "ci95": [
+        0.4518320715170881,
+        0.8212741747805667
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 3
+    },
+    {
+      "name": "classification.ZBAA.csi_macro",
+      "value": 0.6182264058108116,
+      "ci95": [
+        0.3957677215209108,
+        0.7380966619290144
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 3
+    },
+    {
+      "name": "classification.ZSPD.csi_good",
+      "value": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.f1_good",
+      "value": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.csi_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.f1_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.csi_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.f1_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.macro_f1",
+      "value": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "classification.ZSPD.csi_macro",
+      "value": 1.0,
+      "ci95": [
+        1.0,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "classification.ZSSS.csi_good",
+      "value": 0.9997475385003787,
+      "ci95": [
+        0.999234693877551,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.f1_good",
+      "value": 0.9998737533139755,
+      "ci95": [
+        0.9996172004593594,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.csi_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.f1_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.csi_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 1,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.f1_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 1,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.macro_f1",
+      "value": 0.9998737533139755,
+      "ci95": [
+        0.9996172004593594,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "classification.ZSSS.csi_macro",
+      "value": 0.9997475385003787,
+      "ci95": [
+        0.999234693877551,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    }
+  ],
+  "overall": [
+    {
+      "name": "overall.classification.macro_f1",
+      "value": 0.7337716990191927,
+      "ci95": [
+        0.4518320715170881,
+        0.8212741747805667
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.csi_macro",
+      "value": 0.6182264058108116,
+      "ci95": [
+        0.3957677215209108,
+        0.7380966619290144
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.csi_good",
+      "value": 0.9460732984293194,
+      "ci95": [
+        0.8940235585515814,
+        0.9836383726121385
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.csi_precip",
+      "value": 0.32916666666666666,
+      "ci95": [
+        0.0,
+        0.4909090909090909
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.csi_class_hazard",
+      "value": 0.5794392523364486,
+      "ci95": [
+        0.0,
+        0.875
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.f1_good",
+      "value": 0.9722894807640571,
+      "ci95": [
+        0.9440469230106538,
+        0.991751708530261
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.f1_precip",
+      "value": 0.4952978056426332,
+      "ci95": [
+        0.0,
+        0.6585365853658537
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.f1_class_hazard",
+      "value": 0.7337278106508875,
+      "ci95": [
+        0.0,
+        0.9333333333333333
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    }
+  ],
+  "decision_policy_metrics": {
+    "classification_macro_f1": {
+      "source_metric": "overall.classification.macro_f1",
+      "value": 0.7337716990191927,
+      "ci95": [
+        0.4518320715170881,
+        0.8212741747805667
+      ],
+      "degenerate": false
+    },
+    "classification_csi_macro": {
+      "source_metric": "overall.classification.csi_macro",
+      "value": 0.6182264058108116,
+      "ci95": [
+        0.3957677215209108,
+        0.7380966619290144
+      ],
+      "degenerate": false
+    },
+    "hazard_class_f1": {
+      "source_metric": "overall.classification.f1_class_hazard",
+      "value": 0.7337278106508875,
+      "ci95": [
+        0.0,
+        0.9333333333333333
+      ],
+      "degenerate": false
+    }
+  },
+  "anomaly_counts": {
+    "nan": 0,
+    "inf": 0,
+    "out_of_range": 0,
+    "missing_id": 0,
+    "unknown_id": 0,
+    "duplicate_id": 0,
+    "shape_error": 0,
+    "undefined_zero_denominator": 3,
+    "zero_support": 4
+  }
+}

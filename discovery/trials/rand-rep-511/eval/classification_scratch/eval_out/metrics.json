@@ -1,0 +1,435 @@
+{
+  "status": "completed",
+  "task": "classification",
+  "split": "val",
+  "task_contract_version": "2.0",
+  "contract_sha256": "2e55c519acc44075707157813cd7a1199d6e595317c9a730b895296c80385be8",
+  "data_release": "AeroWF_v1",
+  "metric_scale": "normalized_[0,1]",
+  "forecast_protocol": null,
+  "trial": {
+    "arm": "llm",
+    "checkpoint_digest": "classification_scratch",
+    "seed": 42,
+    "task": "classification",
+    "trial_id": "rand-rep-511"
+  },
+  "endpoints": [
+    {
+      "name": "classification.ZBAA.csi_good",
+      "value": 0.9292172565228624,
+      "ci95": [
+        0.8646101281384181,
+        0.9762497268476028
+      ],
+      "support": 3627,
+      "fp": 244,
+      "false_positive_only": false,
+      "event_rate": 0.9156778591264833,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.f1_good",
+      "value": 0.963310123192287,
+      "ci95": [
+        0.927389705199413,
+        0.9879821496053676
+      ],
+      "support": 3627,
+      "fp": 244,
+      "false_positive_only": false,
+      "event_rate": 0.9156778591264833,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.csi_precip",
+      "value": 0.13765182186234817,
+      "ci95": [
+        0.01639344262295082,
+        0.24271844660194175
+      ],
+      "support": 240,
+      "fp": 7,
+      "false_positive_only": false,
+      "event_rate": 0.06059075990911386,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.f1_precip",
+      "value": 0.24199288256227758,
+      "ci95": [
+        0.03225806451612903,
+        0.390625
+      ],
+      "support": 240,
+      "fp": 7,
+      "false_positive_only": false,
+      "event_rate": 0.06059075990911386,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.csi_class_hazard",
+      "value": 0.47863247863247865,
+      "ci95": [
+        0.0,
+        0.7333333333333333
+      ],
+      "support": 94,
+      "fp": 23,
+      "false_positive_only": false,
+      "event_rate": 0.02373138096440293,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.f1_class_hazard",
+      "value": 0.6473988439306358,
+      "ci95": [
+        0.0,
+        0.8461538461538461
+      ],
+      "support": 94,
+      "fp": 23,
+      "false_positive_only": false,
+      "event_rate": 0.02373138096440293,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.macro_f1",
+      "value": 0.6175672832284002,
+      "ci95": [
+        0.3524177798038027,
+        0.7064392543669964
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 3
+    },
+    {
+      "name": "classification.ZBAA.csi_macro",
+      "value": 0.5151671856725631,
+      "ci95": [
+        0.3315450800439863,
+        0.6080383651918682
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 3
+    },
+    {
+      "name": "classification.ZSPD.csi_good",
+      "value": 0.9969704620045443,
+      "ci95": [
+        0.9907904834996163,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.f1_good",
+      "value": 0.9984829329962074,
+      "ci95": [
+        0.9953739398612182,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.csi_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 12,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.f1_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 12,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.csi_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.f1_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.macro_f1",
+      "value": 0.9984829329962074,
+      "ci95": [
+        0.9953644089621426,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "classification.ZSPD.csi_macro",
+      "value": 0.9969704620045443,
+      "ci95": [
+        0.990745501285347,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "classification.ZSSS.csi_good",
+      "value": 0.999242615501136,
+      "ci95": [
+        0.9982508745627187,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.f1_good",
+      "value": 0.9996211642884203,
+      "ci95": [
+        0.999124671751907,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.csi_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 2,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.f1_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 2,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.csi_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 1,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.f1_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 1,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.macro_f1",
+      "value": 0.9996211642884203,
+      "ci95": [
+        0.9991311902693311,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "classification.ZSSS.csi_macro",
+      "value": 0.999242615501136,
+      "ci95": [
+        0.9982460536206464,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    }
+  ],
+  "overall": [
+    {
+      "name": "overall.classification.macro_f1",
+      "value": 0.6175672832284002,
+      "ci95": [
+        0.3524177798038027,
+        0.7064392543669964
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.csi_macro",
+      "value": 0.5151671856725631,
+      "ci95": [
+        0.3315450800439863,
+        0.6080383651918682
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.csi_good",
+      "value": 0.9292172565228624,
+      "ci95": [
+        0.8646101281384181,
+        0.9762497268476028
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.csi_precip",
+      "value": 0.13765182186234817,
+      "ci95": [
+        0.01639344262295082,
+        0.24271844660194175
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.csi_class_hazard",
+      "value": 0.47863247863247865,
+      "ci95": [
+        0.0,
+        0.7333333333333333
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.f1_good",
+      "value": 0.963310123192287,
+      "ci95": [
+        0.927389705199413,
+        0.9879821496053676
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.f1_precip",
+      "value": 0.24199288256227758,
+      "ci95": [
+        0.03225806451612903,
+        0.390625
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.f1_class_hazard",
+      "value": 0.6473988439306358,
+      "ci95": [
+        0.0,
+        0.8461538461538461
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    }
+  ],
+  "decision_policy_metrics": {
+    "classification_macro_f1": {
+      "source_metric": "overall.classification.macro_f1",
+      "value": 0.6175672832284002,
+      "ci95": [
+        0.3524177798038027,
+        0.7064392543669964
+      ],
+      "degenerate": false
+    },
+    "classification_csi_macro": {
+      "source_metric": "overall.classification.csi_macro",
+      "value": 0.5151671856725631,
+      "ci95": [
+        0.3315450800439863,
+        0.6080383651918682
+      ],
+      "degenerate": false
+    },
+    "hazard_class_f1": {
+      "source_metric": "overall.classification.f1_class_hazard",
+      "value": 0.6473988439306358,
+      "ci95": [
+        0.0,
+        0.8461538461538461
+      ],
+      "degenerate": false
+    }
+  },
+  "anomaly_counts": {
+    "nan": 0,
+    "inf": 0,
+    "out_of_range": 0,
+    "missing_id": 0,
+    "unknown_id": 0,
+    "duplicate_id": 0,
+    "shape_error": 0,
+    "undefined_zero_denominator": 1,
+    "zero_support": 4
+  }
+}

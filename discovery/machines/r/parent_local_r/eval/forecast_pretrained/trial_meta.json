@@ -1,0 +1,1 @@
+{"trial_id": "parent-local-r", "arm": "llm", "seed": 42, "task": "forecast", "checkpoint_digest": "forecast_pretrained"}

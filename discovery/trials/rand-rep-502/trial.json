@@ -1,0 +1,16 @@
+{
+  "trial_id": "rand-rep-502",
+  "axis": "representation",
+  "action_id": "R6-multiscale-diff",
+  "params": {
+    "diff_steps": [
+      4
+    ],
+    "rolling_var_window": 8
+  },
+  "hypothesis": "1步/4步差分与滚动方差补充战术尺度瞬变信息",
+  "falsification": "T+1 无改善，或长时效明显恶化",
+  "is_free_proposal": false,
+  "arm": "random",
+  "screening_seed": 42
+}

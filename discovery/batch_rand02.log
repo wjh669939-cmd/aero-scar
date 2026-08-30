@@ -1,0 +1,20 @@
+
+===== RANDOM TRIAL 506 action=O1-horizon-weighted-mse params={'weights_t1_t4_t8': [3, 1, 1]} 2026-08-30T07:45:14Z =====
+TRIAL_OUTCOME: dedup reuse of rand-obj-503 (zero GPU)
+
+===== RANDOM TRIAL 507 action=R4-runway-frame-wind params={'components': ['gust_crosswind']} 2026-08-30T07:45:14Z =====
+TRIAL_OUTCOME: dedup reuse of rand-rep-501 (zero GPU)
+
+===== RANDOM TRIAL 508 action=R6-multiscale-diff params={'diff_steps': [4], 'rolling_var_window': 8} 2026-08-30T07:45:14Z =====
+TRIAL_OUTCOME: {"trial_id": "rand-rep-508", "event": "smoke_rejected", "status": null, "paired_delta_vs_parent": null, "screen_pass": null, "hypothesis_verdict": null}
+
+===== RANDOM TRIAL 509 action=O1-horizon-weighted-mse params={'weights_t1_t4_t8': [3, 1, 1]} 2026-08-30T07:45:15Z =====
+TRIAL_OUTCOME: dedup reuse of rand-obj-503 (zero GPU)
+
+===== RANDOM TRIAL 510 action=R4-runway-frame-wind params={'components': ['crosswind', 'gust_crosswind', 'headwind']} 2026-08-30T07:45:15Z =====
+TRIAL_OUTCOME: dedup reuse of rand-rep-504 (zero GPU)
+
+===== RANDOM TRIAL 511 action=R5-wind-cyclic-encoding params={'variant': 'sincos_plus_speed_decouple'} 2026-08-30T07:45:15Z =====
+TRIAL_OUTCOME: {"trial_id": "rand-rep-511", "event": null, "status": "completed", "paired_delta_vs_parent": {"forecast_scratch.RMSE_macro_norm": 0.002378, "forecast_scratch.MAE_macro_norm": 0.000946, "forecast_pretrained.RMSE_macro_norm": 0.002367, "forecast_pretrained.MAE_macro_norm": 0.002654, "classification_scratch.classification_macro_f1": -0.132783, "classification_scratch.classification_csi_macro": -0.111623, "classification_scratch.hazard_class_f1": 0.014309, "classification_pretrained.classification_macro_f1": -0.128154, "classification_pretrained.classification_csi_macro": -0.143727, "classification_pretrained.hazard_class_f1": -0.281217}, "screen_pass": false, "hypothesis_verdict": "refuted"}
+
+BATCH_DONE 2026-08-30T09:10:35Z

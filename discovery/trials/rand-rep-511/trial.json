@@ -1,0 +1,13 @@
+{
+  "trial_id": "rand-rep-511",
+  "axis": "representation",
+  "action_id": "R5-wind-cyclic-encoding",
+  "params": {
+    "variant": "sincos_plus_speed_decouple"
+  },
+  "hypothesis": "风向 sin/cos 周期编码 + 风速-风向解耦改善低风速方向表示",
+  "falsification": "低风速切片与 T+1 均无配对改善，或主网格恶化超容差",
+  "is_free_proposal": false,
+  "arm": "random",
+  "screening_seed": 42
+}

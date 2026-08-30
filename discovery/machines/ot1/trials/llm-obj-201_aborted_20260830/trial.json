@@ -1,0 +1,32 @@
+{
+  "trial_id": "llm-obj-201",
+  "arm": "llm",
+  "axis": "objective_tier1",
+  "tier": 1,
+  "parent_trial": "parent-seed42-formal",
+  "action_id": "free-angular-wind-direction-loss",
+  "is_free_proposal": true,
+  "hypothesis": "Adding a masked cosine-similarity penalty between predicted and target wind vectors constrains the forecast head in polar direction, reducing the systematic wind_x overprediction and the wind_x-dominated T+8 errors that plain Cartesian MSE leaves under-constrained.",
+  "evidence_anchor": "All weakest forecast RMSE slices are wind_x at T+8 (ZBAA 0.0578, ZSSS 0.0575, ZSPD 0.0560) and ZSSS T+1 wind_x shows overprediction >1; normalized wind components are Cartesian, so MSE alone does not directly penalize correlated vector-direction error.",
+  "target_slices": [
+    "forecast_by_weighted_horizon",
+    "ZBAA.T+8.wind_x.rmse",
+    "ZSSS.T+8.wind_x.rmse",
+    "ZSSS.T+1.wind_x.rmse"
+  ],
+  "expected_effect": "paired fc_scratch RMSE improves by 0.0005 to 0.002 relative to parent; T+8 wind_x slices improve by 0.001 to 0.003; ZSSS T+1 wind_x overprediction is reduced.",
+  "falsification": "If paired fc_scratch RMSE improvement is < 0.0005, or if mean RMSE over ZBAA/ZSSS T+8 wind_x slices does not improve relative to parent, the trial is refuted.",
+  "editable_paths": [
+    "aerowf_downstream_v2/src/trial_objective.py"
+  ],
+  "patch_plan": "In forecast_loss, compute the base masked MSE as before. Then split prediction and target along dim=3 into wind_x and wind_y, compute vector cosine similarity per active element with epsilon=1e-6, and add lambda * masked_mean(1 - cosine_similarity) with lambda=0.2. Return the sum of base MSE and the angular penalty.",
+  "non_expressibility": "Closest templates O1-horizon-weighted-mse and O2-event-weighted-loss reweight squared-error terms along different axes but cannot express a polar directional penalty that couples wind_x and wind_y through cosine similarity. This functional form is outside all active template parameter spaces.",
+  "budget": {
+    "gpu_hours_cap": 1.0,
+    "seeds": [
+      42
+    ]
+  },
+  "created_at_utc": "2026-08-30T02:32:39Z",
+  "forced_free_round": false
+}

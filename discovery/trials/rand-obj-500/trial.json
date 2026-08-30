@@ -1,0 +1,17 @@
+{
+  "trial_id": "rand-obj-500",
+  "axis": "objective_tier1",
+  "action_id": "O1-horizon-weighted-mse",
+  "params": {
+    "weights_t1_t4_t8": [
+      3,
+      1,
+      1
+    ]
+  },
+  "hypothesis": "时效加权（含反向配置）重分配容量到目标时效",
+  "falsification": "目标时效无改善，或其余时效恶化超容差",
+  "is_free_proposal": false,
+  "arm": "random",
+  "screening_seed": 42
+}

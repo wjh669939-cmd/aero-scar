@@ -1,0 +1,435 @@
+{
+  "status": "completed",
+  "task": "classification",
+  "split": "val",
+  "task_contract_version": "2.0",
+  "contract_sha256": "2e55c519acc44075707157813cd7a1199d6e595317c9a730b895296c80385be8",
+  "data_release": "AeroWF_v1",
+  "metric_scale": "normalized_[0,1]",
+  "forecast_protocol": null,
+  "trial": {
+    "arm": "llm",
+    "checkpoint_digest": "classification_scratch",
+    "seed": 42,
+    "task": "classification",
+    "trial_id": "rand-rep-501"
+  },
+  "endpoints": [
+    {
+      "name": "classification.ZBAA.csi_good",
+      "value": 0.9098977945131791,
+      "ci95": [
+        0.838338653699149,
+        0.9667428429578981
+      ],
+      "support": 3627,
+      "fp": 91,
+      "false_positive_only": false,
+      "event_rate": 0.9156778591264833,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.f1_good",
+      "value": 0.9528235459794395,
+      "ci95": [
+        0.9120611594089932,
+        0.9830902361414317
+      ],
+      "support": 3627,
+      "fp": 91,
+      "false_positive_only": false,
+      "event_rate": 0.9156778591264833,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.csi_precip",
+      "value": 0.5686274509803921,
+      "ci95": [
+        0.1537735849056605,
+        0.8680075799098131
+      ],
+      "support": 240,
+      "fp": 66,
+      "false_positive_only": false,
+      "event_rate": 0.06059075990911386,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.f1_precip",
+      "value": 0.725,
+      "ci95": [
+        0.26655737704918053,
+        0.9293405221238148
+      ],
+      "support": 240,
+      "fp": 66,
+      "false_positive_only": false,
+      "event_rate": 0.06059075990911386,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.csi_class_hazard",
+      "value": 0.2536764705882353,
+      "ci95": [
+        0.0,
+        0.5648401715232431
+      ],
+      "support": 94,
+      "fp": 178,
+      "false_positive_only": false,
+      "event_rate": 0.02373138096440293,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.f1_class_hazard",
+      "value": 0.4046920821114369,
+      "ci95": [
+        0.0,
+        0.7219131641554319
+      ],
+      "support": 94,
+      "fp": 178,
+      "false_positive_only": false,
+      "event_rate": 0.02373138096440293,
+      "degenerate": false
+    },
+    {
+      "name": "classification.ZBAA.macro_f1",
+      "value": 0.6941718760302922,
+      "ci95": [
+        0.4457972719824833,
+        0.8274122893386543
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 3
+    },
+    {
+      "name": "classification.ZBAA.csi_macro",
+      "value": 0.5774005720272688,
+      "ci95": [
+        0.3856088853402306,
+        0.7339658641659544
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 3
+    },
+    {
+      "name": "classification.ZSPD.csi_good",
+      "value": 0.9979803080030295,
+      "ci95": [
+        0.9938603223330775,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.f1_good",
+      "value": 0.9989891331817033,
+      "ci95": [
+        0.9969207082371054,
+        1.0
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.csi_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.f1_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.csi_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 8,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.f1_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 8,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSPD.macro_f1",
+      "value": 0.9989891331817033,
+      "ci95": [
+        0.9969143738750321,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "classification.ZSPD.csi_macro",
+      "value": 0.9979803080030295,
+      "ci95": [
+        0.9938303341902314,
+        1.0
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "classification.ZSSS.csi_good",
+      "value": 0.9946983085079525,
+      "ci95": [
+        0.9885047158553509,
+        0.9994965696909853
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.f1_good",
+      "value": 0.9973421085938489,
+      "ci95": [
+        0.9942191315544937,
+        0.9997482214689339
+      ],
+      "support": 3961,
+      "fp": 0,
+      "false_positive_only": false,
+      "event_rate": 1.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.csi_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 11,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.f1_precip",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 11,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.csi_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 10,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.f1_class_hazard",
+      "value": null,
+      "ci95": [
+        null,
+        null
+      ],
+      "support": 0,
+      "fp": 10,
+      "false_positive_only": true,
+      "event_rate": 0.0,
+      "degenerate": true
+    },
+    {
+      "name": "classification.ZSSS.macro_f1",
+      "value": 0.9973421085938489,
+      "ci95": [
+        0.9941590628125297,
+        0.9997500624843789
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "classification.ZSSS.csi_macro",
+      "value": 0.9946983085079525,
+      "ci95": [
+        0.9885200416373445,
+        0.9995002498750625
+      ],
+      "degenerate": true,
+      "included_endpoint_count": 1
+    }
+  ],
+  "overall": [
+    {
+      "name": "overall.classification.macro_f1",
+      "value": 0.6941718760302922,
+      "ci95": [
+        0.4457972719824833,
+        0.8274122893386543
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.csi_macro",
+      "value": 0.5774005720272688,
+      "ci95": [
+        0.3856088853402306,
+        0.7339658641659544
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.csi_good",
+      "value": 0.9098977945131791,
+      "ci95": [
+        0.838338653699149,
+        0.9667428429578981
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.csi_precip",
+      "value": 0.5686274509803921,
+      "ci95": [
+        0.1537735849056605,
+        0.8680075799098131
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.csi_class_hazard",
+      "value": 0.2536764705882353,
+      "ci95": [
+        0.0,
+        0.5648401715232431
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.f1_good",
+      "value": 0.9528235459794395,
+      "ci95": [
+        0.9120611594089932,
+        0.9830902361414317
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.f1_precip",
+      "value": 0.725,
+      "ci95": [
+        0.26655737704918053,
+        0.9293405221238148
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    },
+    {
+      "name": "overall.classification.f1_class_hazard",
+      "value": 0.4046920821114369,
+      "ci95": [
+        0.0,
+        0.7219131641554319
+      ],
+      "degenerate": false,
+      "included_endpoint_count": 1
+    }
+  ],
+  "decision_policy_metrics": {
+    "classification_macro_f1": {
+      "source_metric": "overall.classification.macro_f1",
+      "value": 0.6941718760302922,
+      "ci95": [
+        0.4457972719824833,
+        0.8274122893386543
+      ],
+      "degenerate": false
+    },
+    "classification_csi_macro": {
+      "source_metric": "overall.classification.csi_macro",
+      "value": 0.5774005720272688,
+      "ci95": [
+        0.3856088853402306,
+        0.7339658641659544
+      ],
+      "degenerate": false
+    },
+    "hazard_class_f1": {
+      "source_metric": "overall.classification.f1_class_hazard",
+      "value": 0.4046920821114369,
+      "ci95": [
+        0.0,
+        0.7219131641554319
+      ],
+      "degenerate": false
+    }
+  },
+  "anomaly_counts": {
+    "nan": 0,
+    "inf": 0,
+    "out_of_range": 0,
+    "missing_id": 0,
+    "unknown_id": 0,
+    "duplicate_id": 0,
+    "shape_error": 0,
+    "undefined_zero_denominator": 1,
+    "zero_support": 4
+  }
+}

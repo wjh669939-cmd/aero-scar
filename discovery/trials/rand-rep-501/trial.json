@@ -1,0 +1,15 @@
+{
+  "trial_id": "rand-rep-501",
+  "axis": "representation",
+  "action_id": "R4-runway-frame-wind",
+  "params": {
+    "components": [
+      "gust_crosswind"
+    ]
+  },
+  "hypothesis": "跑道坐标系顺风/侧风/阵风侧风分量提供显式几何先验",
+  "falsification": ">=2 机场 crosswind MAE 无配对改善，或主网格恶化超容差",
+  "is_free_proposal": false,
+  "arm": "random",
+  "screening_seed": 42
+}

@@ -1,0 +1,22 @@
+{
+  "forecast_scratch": {
+    "RMSE_macro_norm": 0.04847144659294747,
+    "MAE_macro_norm": 0.0254475019647884
+  },
+  "forecast_pretrained": {
+    "RMSE_macro_norm": 0.050914956093713465,
+    "MAE_macro_norm": 0.028485761160945373
+  },
+  "classification_scratch": {
+    "classification_macro_f1": 0.7503480172247198,
+    "classification_csi_macro": 0.6267945687869917,
+    "hazard_class_f1": 0.6330935251798561
+  },
+  "classification_pretrained": {
+    "classification_macro_f1": 0.8036497691430459,
+    "classification_csi_macro": 0.6938802191024681,
+    "hazard_class_f1": 0.7885714285714286
+  },
+  "_generated_at": "2026-08-30T10:32:55Z",
+  "_source": "parent_local_r_seed42（实测与 D 机位级兼容，偏移 0.0，仍按协议用本机文件）"
+}

@@ -1,0 +1,9 @@
+smoke gate 自检通过（基线文件）
+
+===== TRIAL 201 axis=objective_tier1 2026-08-30T06:05:49Z =====
+TRIAL_OUTCOME: {"trial_id": null, "event": "proposal_rejected", "status": null, "paired_delta_vs_parent": null, "screen_pass": null, "hypothesis_verdict": null}
+
+===== TRIAL 202 axis=objective_tier1 2026-08-30T06:12:28Z =====
+TRIAL_OUTCOME: {"trial_id": "llm-obj-202", "event": null, "status": "completed", "paired_delta_vs_parent": {"forecast_scratch.RMSE_macro_norm": -0.000668, "forecast_scratch.MAE_macro_norm": -0.001266, "forecast_pretrained.RMSE_macro_norm": -0.000115, "forecast_pretrained.MAE_macro_norm": -0.000285, "classification_scratch.classification_macro_f1": 0.068196, "classification_scratch.classification_csi_macro": 0.087549, "classification_scratch.hazard_class_f1": 0.022466, "classification_pretrained.classification_macro_f1": -0.069878, "classification_pretrained.classification_csi_macro": -0.075654, "classification_pretrained.hazard_class_f1": -0.054842}, "screen_pass": true, "hypothesis_verdict": "supported"}
+
+BATCH_DONE 2026-08-30T07:42:08Z

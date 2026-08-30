@@ -1,0 +1,33 @@
+{
+  "trial_id": "llm-obj-200",
+  "arm": "llm",
+  "axis": "objective_tier1",
+  "tier": 1,
+  "parent_trial": "parent-seed42-formal",
+  "action_id": "free-wind-speed-coupled-mse",
+  "is_free_proposal": true,
+  "hypothesis": "The forecast head supervises only Cartesian wind components, leaving wind speed magnitude unconstrained and allowing wind_x overprediction at normalized boundaries to persist. Adding a differentiable wind-speed magnitude error term couples component predictions and sharpens extreme wind event forecasts.",
+  "evidence_anchor": "Parent seed42 forecast grid: five weakest slices are all wind_x (ZBAA.T+8 0.0578, ZSSS.T+8 0.0575, ZSPD.T+8 0.0560, ZSSS.T+4 0.0555, ZBAA.T+4 0.0554); ZSSS T+1 wind_x shows >1 predictions despite normalized input, indicating unconstrained component predictions without direct speed supervision.",
+  "target_slices": [
+    "extreme_event_forecast_error",
+    "ZBAA.T+8.wind_x.rmse",
+    "ZSSS.T+8.wind_x.rmse",
+    "ZSPD.T+8.wind_x.rmse",
+    "forecast_by_weighted_horizon"
+  ],
+  "expected_effect": "Paired fc_scratch RMSE delta <= -0.0005; listed wind_x slices improve approximately 0.001-0.003; extreme_event_forecast_error improves without materially degrading wind_y slices.",
+  "falsification": "Reject if paired fc_scratch RMSE delta vs parent is >= -0.0005, or if extreme_event_forecast_error and the listed wind_x slices show no improvement beyond noise while fc_scratch RMSE fails the screening line.",
+  "editable_paths": [
+    "aerowf_downstream_v2/src/trial_objective.py"
+  ],
+  "patch_plan": "In forecast_loss, compute component MSE as usual. Then compute per-element predicted and target wind speed as sqrt(ux^2 + uy^2 + 1e-8). Add a penalty term lambda * MSE(speed_pred, speed_target) with lambda=1.0. Apply node_mask to both component and speed losses and keep all operations finite via the epsilon kernel.",
+  "non_expressibility": "Closest template O1-horizon-weighted-mse applies static scalars on horizon dim=2, while O2-event-weighted-loss uses scalar train-label event weights; neither can express a coupled wind-speed magnitude penalty between wind_x and wind_y via sqrt(u^2+v^2), a different functional basis with component interaction.",
+  "budget": {
+    "gpu_hours_cap": 1.0,
+    "seeds": [
+      42
+    ]
+  },
+  "created_at_utc": "2026-08-29T14:29:06Z",
+  "forced_free_round": false
+}
