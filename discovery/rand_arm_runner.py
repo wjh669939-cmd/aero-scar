@@ -27,6 +27,33 @@ import discovery_runner as dr
 from random_arm_edits import RANDOM_SPACE_V1, generate_edit, sample_params
 
 
+def _params_key(action_id: str, params: dict) -> str:
+    return json.dumps({"action_id": action_id, "params": params}, sort_keys=True, ensure_ascii=False)
+
+
+def build_dedup_cache() -> dict[str, dict]:
+    """扫描已有 rand-* trial，建 (模板,参数) → 已有结果 的缓存。
+
+    重复采样时复用已记录结果、样本照常记账（不重排采样序列，
+    均匀采样的统计性质不变）；位级复现性由 500/503 撞车对照背书。
+    """
+    cache: dict[str, dict] = {}
+    trials_root = dr.DISCOVERY / "trials"
+    if not trials_root.exists():
+        return cache
+    for tdir in sorted(trials_root.glob("rand-*")):
+        tj, rj = tdir / "trial.json", tdir / "result.json"
+        if not (tj.exists() and rj.exists()):
+            continue
+        trial = json.loads(tj.read_text(encoding="utf-8"))
+        result = json.loads(rj.read_text(encoding="utf-8"))
+        if result.get("status") == "completed":
+            cache[_params_key(trial["action_id"], trial["params"])] = {
+                "source_trial": trial["trial_id"], "result": result,
+            }
+    return cache
+
+
 def run_random_trial(action: dict, params: dict, trial_seq: int, seed: int) -> dict:
     axis, new_source = generate_edit(action["action_id"], params)
     short = "rep" if axis == "representation" else "obj"
@@ -158,12 +185,29 @@ def main() -> int:
     registry = json.loads(dr.REGISTRY.read_text(encoding="utf-8"))
     actions = {a["action_id"]: a for a in registry["actions"]}
     rng = random.Random(args.sample_seed)
+    dedup = build_dedup_cache()
     for i in range(args.n):
         seq = args.start_seq + i
         action_id = rng.choice(RANDOM_SPACE_V1)
         action = actions[action_id]
         params = sample_params(action, rng)
         print(f"\n===== RANDOM TRIAL {seq} action={action_id} params={params} {dr.now_utc()} =====", flush=True)
+        key = _params_key(action_id, params)
+        if key in dedup:
+            hit = dedup[key]
+            dr.append_lineage({
+                "event": "trial_dedup_reuse", "trial_seq": seq, "axis": hit["result"].get("axis", ""),
+                "action_id": action_id, "params": params,
+                "arm_category": "random_arm",
+                "reused_from": hit["source_trial"],
+                "paired_delta_vs_parent": hit["result"].get("paired_delta_vs_parent"),
+                "screen_pass": hit["result"].get("screen_pass"),
+                "hypothesis_verdict": hit["result"].get("hypothesis_verdict"),
+                "note": "重复 (模板,参数) 采样，复用已有结果记账，零 GPU",
+                "at": dr.now_utc(),
+            })
+            print(f"TRIAL_OUTCOME: dedup reuse of {hit['source_trial']} (zero GPU)", flush=True)
+            continue
         try:
             out = run_random_trial(action, params, seq, args.seed)
         except Exception as exc:  # noqa: BLE001
@@ -171,6 +215,8 @@ def main() -> int:
             dr.append_lineage({"event": "driver_error", "axis": "random_arm", "trial_seq": seq,
                                "error": str(exc)[:300], "at": dr.now_utc()})
             continue
+        if out.get("status") == "completed":
+            dedup[key] = {"source_trial": out["trial_id"], "result": out}
         print("TRIAL_OUTCOME:", json.dumps(
             {k: out.get(k) for k in ("trial_id", "event", "status", "paired_delta_vs_parent",
                                      "screen_pass", "hypothesis_verdict")},
